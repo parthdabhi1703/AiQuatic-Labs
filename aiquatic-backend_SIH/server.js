@@ -123,6 +123,20 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint to list available files
+app.get("/api/files", (req, res) => {
+  try {
+    const files = fs.readdirSync(cleanedDirPath);
+    res.json({ 
+      files: files,
+      cleanedDirPath: cleanedDirPath,
+      count: files.length 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const runPythonCleaner = (filePath, dataType) => {
   return new Promise((resolve, reject) => {
     // Try python3 first, then python for compatibility

@@ -3,6 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -1170,7 +1171,8 @@ body {
   background: #f8fafc;
 }
 
-.loading, .error {
+.loading,
+.error {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1179,7 +1181,8 @@ body {
   text-align: center;
 }
 
-.loading i, .error i {
+.loading i,
+.error i {
   font-size: 3rem;
   margin-bottom: 1rem;
 }
@@ -1192,7 +1195,8 @@ body {
   color: #ef4444;
 }
 
-.loading p, .error p {
+.loading p,
+.error p {
   font-size: 1.1rem;
   color: #64748b;
   margin: 0;
@@ -1228,6 +1232,7 @@ body {
   background: #ffffff;
   border-radius: 12px;
   padding: 1.5rem;
+  padding-bottom: 3rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
   height: 400px;
@@ -1255,7 +1260,7 @@ body {
   .modal-charts-grid {
     gap: 1.5rem;
   }
-  
+
   .modal-chart-container {
     height: 350px;
   }
@@ -1266,20 +1271,20 @@ body {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .modal-chart-container {
     height: 300px;
   }
-  
+
   .modal-content {
     width: 98%;
     margin: 1rem;
   }
-  
+
   .modal-body {
     padding: 1rem;
   }
-  
+
   .modal-charts-container {
     padding: 1rem;
   }
@@ -1289,15 +1294,15 @@ body {
   .view-modal {
     padding: 0.5rem;
   }
-  
+
   .modal-header {
     padding: 1rem 1.5rem;
   }
-  
+
   .modal-header h2 {
     font-size: 1.2rem;
   }
-  
+
   .modal-chart-container {
     height: 250px;
     padding: 1rem;
