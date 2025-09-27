@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - Ocean Parameters</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search ocean parameters..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults">
+          <div class="result-item" data-search="temperature ocean parameters">
+            <span class="tag parameter">PARAMETER</span> Ocean Temperature
+          </div>
+          <div class="result-item" data-search="salinity levels psu">
+            <span class="tag parameter">PARAMETER</span> Salinity Levels (PSU)
+          </div>
+          <div class="result-item" data-search="ph levels acidity">
+            <span class="tag parameter">PARAMETER</span> pH Levels
+          </div>
+          <div class="result-item" data-search="dissolved oxygen do">
+            <span class="tag parameter">PARAMETER</span> Dissolved Oxygen
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html" class="active"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html"><i class="fas fa-fish"></i> Fish Taxonomy</a>
+          </li>
+          <li>
+            <a href="edna.html"><i class="fas fa-dna"></i> DNA / eDNA</a>
+          </li>
+          <li>
+            <a href="otolith.html"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1><i class="fas fa-water"></i> Ocean Parameters</h1>
+        <p>Physical and chemical properties of ocean water</p>
+      </div>
+
+      <!-- Parameter Cards -->
+      <section class="cards">
+        <div class="card">
+          <div class="icon"><i class="fas fa-thermometer-half"></i></div>
+          <div class="card-content">
+            <h3>Current Temperature</h3>
+            <p class="metric">22.3°C <span class="trend down">▼ 0.5°C</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-tint"></i></div>
+          <div class="card-content">
+            <h3>Salinity Level</h3>
+            <p class="metric">
+              34.2 PSU <span class="trend up">▲ 0.1 PSU</span>
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-flask"></i></div>
+          <div class="card-content">
+            <h3>pH Level</h3>
+            <p class="metric">
+              8.1 <span class="trend neutral">━ Stable</span>
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-wind"></i></div>
+          <div class="card-content">
+            <h3>Dissolved Oxygen</h3>
+            <p class="metric">
+              7.2 mg/L <span class="trend up">▲ 0.3 mg/L</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts">
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Salinity Levels Over Time</h3>
+            <button class="export-btn" onclick="exportChart('salinityChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="salinityChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>pH Levels by Depth</h3>
+            <button class="export-btn" onclick="exportChart('phChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="phChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Temperature vs Depth Profile</h3>
+            <button class="export-btn" onclick="exportChart('tempDepthChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="tempDepthChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Dissolved Oxygen Distribution</h3>
+            <button class="export-btn" onclick="exportChart('oxygenChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="oxygenChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="../app.js"></script>
+  </body>
+</html>

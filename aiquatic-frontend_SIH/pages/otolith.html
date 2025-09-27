@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - Otolith Metadata</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search otolith data, age analysis..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults">
+          <div class="result-item" data-search="otolith age determination">
+            <span class="tag parameter">ANALYSIS</span> Age Determination
+          </div>
+          <div class="result-item" data-search="growth rings analysis">
+            <span class="tag parameter">PARAMETER</span> Growth Rings
+          </div>
+          <div class="result-item" data-search="fish age validation">
+            <span class="tag species">PROCESS</span> Age Validation
+          </div>
+          <div class="result-item" data-search="otolith microstructure">
+            <span class="tag parameter">STRUCTURE</span> Microstructure Analysis
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html"><i class="fas fa-fish"></i> Fish Taxonomy</a>
+          </li>
+          <li>
+            <a href="edna.html"><i class="fas fa-dna"></i> DNA / eDNA</a>
+          </li>
+          <li>
+            <a href="otolith.html" class="active"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1><i class="fas fa-microscope"></i> Otolith Metadata</h1>
+        <p>Fish age determination and otolith analysis data</p>
+      </div>
+
+      <!-- Otolith Cards -->
+      <section class="cards">
+        <div class="card">
+          <div class="icon"><i class="fas fa-circle"></i></div>
+          <div class="card-content">
+            <h3>Otolith Samples</h3>
+            <p class="metric">5,432 <span class="trend up">▲ 89</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+          <div class="card-content">
+            <h3>Avg. Fish Age</h3>
+            <p class="metric">4.7 years <span class="trend up">▲ 0.2</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-ruler"></i></div>
+          <div class="card-content">
+            <h3>Avg. Otolith Size</h3>
+            <p class="metric">
+              12.3 mm <span class="trend neutral">━ Stable</span>
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-check-circle"></i></div>
+          <div class="card-content">
+            <h3>Analysis Complete</h3>
+            <p class="metric">4,876 <span class="trend up">▲ 156</span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts">
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Age Distribution</h3>
+            <button class="export-btn" onclick="exportChart('ageChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="ageChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Otolith Size vs Age</h3>
+            <button class="export-btn" onclick="exportChart('sizeAgeChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="sizeAgeChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Growth Patterns by Species</h3>
+            <button class="export-btn" onclick="exportChart('growthChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="growthChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Monthly Sample Collection</h3>
+            <button class="export-btn" onclick="exportChart('monthlyChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="monthlyChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="../app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: aiquatic-backend
+    runtime: node
+    plan: free
+    buildCommand: |
+      npm install
+      pip3 install -r requirements.txt
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        value: mongodb+srv://aiquaticlabs_db_user:AiQuaticLabs123@aiquaticlabs-cluster.iuxjpdw.mongodb.net/aiquatic
+      - key: JWT_SECRET
+        value: your_secret_key_change_in_production
+      - key: PORT
+        value: 10000
+    autoDeploy: false
+    healthCheckPath: /

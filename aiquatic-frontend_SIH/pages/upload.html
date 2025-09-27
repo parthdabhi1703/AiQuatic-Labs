@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - Data Upload & Visualization</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- =============================================================== -->
+    <!-- [NECESSARY CHANGE 1 of 2]: Add PapaParse for in-browser CSV reading -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="../config.js"></script>
+    <!-- =============================================================== -->
+  </head>
+  <body>
+    <!-- Header (No Changes) -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal (No Changes) -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search uploaded files, datasets..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar (No Changes) -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html"><i class="fas fa-fish"></i> Fish Taxonomy</a>
+          </li>
+          <li>
+            <a href="edna.html"><i class="fas fa-dna"></i> DNA / eDNA</a>
+          </li>
+          <li>
+            <a href="otolith.html"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html" class="active"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Page Header (No Changes) -->
+      <div class="page-header">
+        <h1><i class="fas fa-database"></i> Data Upload & Visualization</h1>
+        <p>Upload your data and create instant visualizations</p>
+      </div>
+
+      <!-- Upload Section (No Changes) -->
+      <section class="upload-card">
+        <div class="upload-header">
+          <h3><i class="fas fa-cloud-upload-alt"></i> Data Upload</h3>
+          <p>
+            Drag & drop your files or click to browse. Supports CSV, Excel, and
+            JSON formats.
+          </p>
+          <p>Choose the category of data you are uploading</p>
+        </div>
+
+        <div class="data-type-box">
+          <label class="radio-option">
+            <input type="radio" name="dataType" value="ocean" checked />
+            <span class="custom-radio"></span> Ocean Data
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="dataType" value="fish" />
+            <span class="custom-radio"></span> Fish Data
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="dataType" value="edna" />
+            <span class="custom-radio"></span> eDNA Data
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="dataType" value="otolith" />
+            <span class="custom-radio"></span> Otolith Data
+          </label>
+        </div>
+
+        <div id="dropArea" class="upload-box">
+          <i class="fa fa-cloud-upload"></i>
+          <h4>Drag & Drop your file here</h4>
+          <p>or</p>
+          <button id="browseBtn" class="upload-btn">Choose File</button>
+          <input type="file" id="fileUpload" accept=".csv,.xlsx,.json" hidden />
+          <div id="fileDetails" class="file-details"></div>
+          <button id="uploadBtn" class="upload-btn primary" hidden>
+            Upload
+          </button>
+          <div class="success-message" id="uploadMsg"></div>
+        </div>
+      </section>
+
+      <!-- Visualization Section (No Changes) -->
+      <section class="upload-card">
+        <div class="upload-header">
+          <h3><i class="fas fa-chart-bar"></i> Ocean Data Visualization</h3>
+          <p>
+            Interactive charts showing Temperature, Salinity, Depth distribution
+            and their relationships from your uploaded data.
+          </p>
+        </div>
+        <div id="visualizationBox" class="visualization-box">
+          <div class="placeholder">
+            <i class="fas fa-chart-line"></i>
+            <p>Upload an Ocean Data file to see detailed visualizations</p>
+            <small style="color: #6b7280; display: block; margin-top: 10px">
+              Charts will show: Temperature trends, Salinity levels, Depth
+              distribution, and Temperature-Depth correlations
+            </small>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent Uploads -->
+      <section class="upload-card">
+        <div class="upload-header">
+          <h3><i class="fas fa-history"></i> Recent Uploads</h3>
+        </div>
+        <div class="recent-files" id="recentUploads">
+          <!-- ========================================================================= -->
+          <!-- [NECESSARY CHANGE 2 of 2]: Add a placeholder for the recent uploads list. -->
+          <!-- The script will hide this once the first cleaned file is added.          -->
+          <div class="placeholder" id="recentUploadsPlaceholder">
+            <p>
+              Your cleaned and downloadable files will appear here after upload.
+            </p>
+          </div>
+          <!-- ========================================================================= -->
+        </div>
+      </section>
+    </main>
+
+    <!-- View Modal -->
+    <div id="viewModal" class="view-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">File Visualization</h2>
+          <button class="modal-close" onclick="closeViewModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading visualization...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../app.js"></script>
+    <script src="../script.js"></script>
+  </body>
+</html>

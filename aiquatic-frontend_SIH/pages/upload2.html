@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - Data Upload & Visualization</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img
+          src="../assets/logo.png"
+          alt="Logo"
+          class="logo-img"
+        />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search uploaded files, datasets..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults">
+          <div class="result-item" data-search="csv data upload">
+            <span class="tag parameter">FORMAT</span> CSV Data Files
+          </div>
+          <div class="result-item" data-search="excel spreadsheet">
+            <span class="tag parameter">FORMAT</span> Excel Spreadsheets
+          </div>
+          <div class="result-item" data-search="json data format">
+            <span class="tag parameter">FORMAT</span> JSON Data Format
+          </div>
+          <div class="result-item" data-search="data visualization chart">
+            <span class="tag parameter">FEATURE</span> Data Visualization
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html"><i class="fas fa-fish"></i> Fish Taxonomy</a>
+          </li>
+          <li>
+            <a href="edna.html"><i class="fas fa-dna"></i> DNA / eDNA</a>
+          </li>
+          <li>
+            <a href="otolith.html"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html" class="active"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1><i class="fas fa-database"></i> Data Upload & Visualization</h1>
+        <p>Upload your data and create instant visualizations</p>
+      </div>
+
+      <!-- Upload Section -->
+      <section class="upload-card">
+        <div class="upload-header">
+            <h3><i class="fas fa-cloud-upload-alt"></i> Data Upload</h3>
+            <p>
+                Drag & drop your files or click to browse. Supports CSV, Excel, and
+                JSON formats.
+            </p>
+        <p>Choose the category of data you are uploading</p>
+    </div>
+    <div class="data-type-box">
+        <label class="radio-option">
+            <input type="radio" name="dataType" value="ocean" checked>
+            <span class="custom-radio"></span> Ocean Data
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="dataType" value="fish">
+            <span class="custom-radio"></span> Fish Data
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="dataType" value="edna">
+            <span class="custom-radio"></span> eDNA Data
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="dataType" value="otolith">
+            <span class="custom-radio"></span> Otolith Data
+        </label>
+    </div>
+        </div>
+        <div id="dropArea" class="upload-box">
+          <i class="fa fa-cloud-upload"></i>
+          <h4>Drag & Drop your file here</h4>
+          <p>or</p>
+          <button id="browseBtn" class="upload-btn">Choose File</button>
+          <input type="file" id="fileUpload" accept=".csv,.xlsx,.json" hidden />
+          <div id="fileDetails" class="file-details"></div>
+          <button id="uploadBtn" class="upload-btn primary" hidden>
+            Upload
+          </button>
+          <div class="success-message" id="uploadMsg"></div>
+        </div>
+      </section>
+
+      <!-- Visualization Section -->
+      <section class="upload-card">
+        <div class="upload-header">
+          <h3><i class="fas fa-chart-bar"></i> Quick Visualization</h3>
+          <p>Your data visualization will appear here after upload.</p>
+        </div>
+        <div id="visualizationBox" class="visualization-box">
+          <div class="placeholder">
+            <i class="fas fa-chart-line"></i>
+            <p>Upload a file to see its visualization</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent Uploads -->
+      <section class="upload-card">
+        <div class="upload-header">
+          <h3><i class="fas fa-history"></i> Recent Uploads</h3>
+        </div>
+        <div class="recent-files">
+          <div class="file-item">
+            <div class="file-icon"><i class="fas fa-file-csv"></i></div>
+            <div class="file-info">
+              <h4>ocean_temperature_data.csv</h4>
+              <p>Uploaded 2 hours ago • 1.2 MB</p>
+            </div>
+            <div class="file-actions">
+              <button class="btn-small">View</button>
+              <button class="btn-small">Download</button>
+            </div>
+          </div>
+          <div class="file-item">
+            <div class="file-icon"><i class="fas fa-file-excel"></i></div>
+            <div class="file-info">
+              <h4>fish_species_survey.xlsx</h4>
+              <p>Uploaded yesterday • 3.4 MB</p>
+            </div>
+            <div class="file-actions">
+              <button class="btn-small">View</button>
+              <button class="btn-small">Download</button>
+            </div>
+          </div>
+          <div class="file-item">
+            <div class="file-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="file-info">
+              <h4>dna_analysis_results.json</h4>
+              <p>Uploaded 3 days ago • 856 KB</p>
+            </div>
+            <div class="file-actions">
+              <button class="btn-small">View</button>
+              <button class="btn-small">Download</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="../app.js"></script>
+    <script src="../script.js"></script>
+  </body>
+</html>

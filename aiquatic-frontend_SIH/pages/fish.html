@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - Fish Taxonomy</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search fish species, families..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults">
+          <div class="result-item" data-search="clupeidae family herring">
+            <span class="tag species">FAMILY</span> Clupeidae (Herring)
+          </div>
+          <div class="result-item" data-search="scombridae tuna mackerel">
+            <span class="tag species">FAMILY</span> Scombridae (Tuna & Mackerel)
+          </div>
+          <div
+            class="result-item"
+            data-search="thunnus albacares yellowfin tuna"
+          >
+            <span class="tag species">SPECIES</span> Thunnus albacares
+          </div>
+          <div class="result-item" data-search="reef habitat ecosystem">
+            <span class="tag location">HABITAT</span> Reef Ecosystem
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html" class="active"
+              ><i class="fas fa-fish"></i> Fish Taxonomy</a
+            >
+          </li>
+          <li>
+            <a href="edna.html"><i class="fas fa-dna"></i> DNA / eDNA</a>
+          </li>
+          <li>
+            <a href="otolith.html"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1><i class="fas fa-fish"></i> Fish Taxonomy</h1>
+        <p>Classification and distribution of aquatic species</p>
+      </div>
+
+      <!-- Taxonomy Cards -->
+      <section class="cards">
+        <div class="card">
+          <div class="icon"><i class="fas fa-sitemap"></i></div>
+          <div class="card-content">
+            <h3>Fish Families</h3>
+            <p class="metric">87 <span class="trend up">▲ 3</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-fish"></i></div>
+          <div class="card-content">
+            <h3>Total Species</h3>
+            <p class="metric">2,863 <span class="trend up">▲ 16</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-eye"></i></div>
+          <div class="card-content">
+            <h3>New Discoveries</h3>
+            <p class="metric">12 <span class="trend up">▲ 5</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="card-content">
+            <h3>Endangered Species</h3>
+            <p class="metric">156 <span class="trend down">▼ 2</span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts">
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Fish Families Distribution</h3>
+            <button class="export-btn" onclick="exportChart('fishChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="fishChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Population by Habitat</h3>
+            <button class="export-btn" onclick="exportChart('habitatChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="habitatChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Species Discovery Timeline</h3>
+            <button class="export-btn" onclick="exportChart('discoveryChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="discoveryChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Conservation Status</h3>
+            <button
+              class="export-btn"
+              onclick="exportChart('conservationChart')"
+            >
+              Export
+            </button>
+          </div>
+          <canvas id="conservationChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="../app.js"></script>
+  </body>
+</html>

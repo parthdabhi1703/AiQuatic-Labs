@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiQuatic Labs - DNA / eDNA Analysis</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <button class="hamburger" id="hamburger">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">
+        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        AiQuatic Labs
+      </div>
+      <div class="header-icons">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="search-modal">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search DNA samples, analysis..."
+          id="searchInput"
+        />
+        <button class="close-btn" id="closeSearch">&times;</button>
+        <div class="search-results" id="searchResults">
+          <div class="result-item" data-search="dna samples analysis">
+            <span class="tag species">ANALYSIS</span> DNA Sample Analysis
+          </div>
+          <div class="result-item" data-search="edna environmental dna">
+            <span class="tag parameter">PARAMETER</span> Environmental DNA
+          </div>
+          <div class="result-item" data-search="genetic sequencing">
+            <span class="tag parameter">METHOD</span> Genetic Sequencing
+          </div>
+          <div class="result-item" data-search="species identification">
+            <span class="tag species">PROCESS</span> Species Identification
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <a href="../index.html"
+              ><i class="fas fa-chart-line"></i> Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="ocean.html"
+              ><i class="fas fa-water"></i> Ocean Parameters</a
+            >
+          </li>
+          <li>
+            <a href="fish.html"><i class="fas fa-fish"></i> Fish Taxonomy</a>
+          </li>
+          <li>
+            <a href="edna.html" class="active"
+              ><i class="fas fa-dna"></i> DNA / eDNA</a
+            >
+          </li>
+          <li>
+            <a href="otolith.html"
+              ><i class="fas fa-microscope"></i> Otolith Metadata</a
+            >
+          </li>
+          <li>
+            <a href="upload.html"
+              ><i class="fas fa-database"></i> Data Upload & Visualization</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1><i class="fas fa-dna"></i> DNA / eDNA Analysis</h1>
+        <p>Genetic analysis and environmental DNA sampling</p>
+      </div>
+
+      <!-- DNA Cards -->
+      <section class="cards">
+        <div class="card">
+          <div class="icon"><i class="fas fa-vial"></i></div>
+          <div class="card-content">
+            <h3>DNA Samples</h3>
+            <p class="metric">15,988 <span class="trend up">▲ 56</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-microscope"></i></div>
+          <div class="card-content">
+            <h3>Sequences Analyzed</h3>
+            <p class="metric">12,450 <span class="trend up">▲ 134</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-dna"></i></div>
+          <div class="card-content">
+            <h3>eDNA Samples</h3>
+            <p class="metric">8,760 <span class="trend up">▲ 78</span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon"><i class="fas fa-search"></i></div>
+          <div class="card-content">
+            <h3>Species Identified</h3>
+            <p class="metric">1,847 <span class="trend up">▲ 23</span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts">
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>DNA Samples Over Time</h3>
+            <button class="export-btn" onclick="exportChart('dnaChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="dnaChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>eDNA by Region</h3>
+            <button class="export-btn" onclick="exportChart('ednaChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="ednaChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Genetic Diversity Index</h3>
+            <button class="export-btn" onclick="exportChart('diversityChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="diversityChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <h3>Sample Processing Status</h3>
+            <button class="export-btn" onclick="exportChart('statusChart')">
+              Export
+            </button>
+          </div>
+          <canvas id="statusChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="../app.js"></script>
+  </body>
+</html>

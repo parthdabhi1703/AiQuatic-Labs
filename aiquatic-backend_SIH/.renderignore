@@ -1,0 +1,10 @@
+# Render Deployment
+node_modules/
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# Keep uploads and cleaned_files for runtime
+!uploads/
+!cleaned_files/
