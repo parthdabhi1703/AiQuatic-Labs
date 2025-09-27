@@ -107,6 +107,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Test endpoints (MUST be before any other routes)
+app.get("/api/test", (req, res) => {
+  console.log("Test endpoint hit!");
+  res.json({ 
+    message: "Backend API is working!", 
+    timestamp: new Date().toISOString(),
+    cors: "enabled",
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
+// Simple health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 const runPythonCleaner = (filePath, dataType) => {
   return new Promise((resolve, reject) => {
     // Try python3 first, then python for compatibility
@@ -199,16 +215,6 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
           if (err) console.error("Error deleting temp file:", err.message);
       });
   }
-});
-
-// Test endpoint for frontend connectivity (before other routes)
-app.get("/api/test", (req, res) => {
-  res.json({ 
-    message: "Backend API is working!", 
-    timestamp: new Date().toISOString(),
-    cors: "enabled",
-    environment: process.env.NODE_ENV || "development"
-  });
 });
 
 // Other API Routes
