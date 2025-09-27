@@ -101,6 +101,12 @@ app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 const runPythonCleaner = (filePath, dataType) => {
   return new Promise((resolve, reject) => {
     // Try python3 first, then python for compatibility
@@ -195,21 +201,33 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
   }
 });
 
-// Other API Routes (No changes)
+// Test endpoint for frontend connectivity (before other routes)
+app.get("/api/test", (req, res) => {
+  res.json({ 
+    message: "Backend API is working!", 
+    timestamp: new Date().toISOString(),
+    cors: "enabled",
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
+// Other API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/ocean_data", oceanDataRoutes);
 app.use("/api/fish_data", fishDataRoutes);
 app.use("/api/dataset_uploads", datasetUploadRoutes); 
 app.use("/api/insights", biodiversityInsightsRoutes);
 app.use("/api/recent-uploads", recentUploadsRoutes);
+
+// Root endpoint
 app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API!"));
 
-// Test endpoint for frontend connectivity
-app.get("/api/test", (req, res) => {
-  res.json({ 
-    message: "Backend API is working!", 
-    timestamp: new Date().toISOString(),
-    cors: "enabled"
+// 404 handler for undefined routes
+app.use("*", (req, res) => {
+  res.status(404).json({ 
+    error: "Route not found", 
+    path: req.originalUrl,
+    method: req.method 
   });
 });
 
