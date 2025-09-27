@@ -240,7 +240,7 @@ app.use("/api/insights", biodiversityInsightsRoutes);
 app.use("/api/recent-uploads", recentUploadsRoutes);
 
 // Root endpoint
-app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API!"));
+app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API! 🚀"));
 
 // 404 handler for undefined routes
 app.use("*", (req, res) => {
