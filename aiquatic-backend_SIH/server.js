@@ -88,8 +88,9 @@ const upload = multer({
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [
-        'https://your-frontend-name.onrender.com',
-        // Add your actual frontend URL here after deployment
+        'https://aiquatic-labs-live.onrender.com',
+        'https://aiquatic-labs.onrender.com',
+        // Allow both frontend domains
       ]
     : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500'],
   credentials: true,
@@ -202,6 +203,15 @@ app.use("/api/dataset_uploads", datasetUploadRoutes);
 app.use("/api/insights", biodiversityInsightsRoutes);
 app.use("/api/recent-uploads", recentUploadsRoutes);
 app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API!"));
+
+// Test endpoint for frontend connectivity
+app.get("/api/test", (req, res) => {
+  res.json({ 
+    message: "Backend API is working!", 
+    timestamp: new Date().toISOString(),
+    cors: "enabled"
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
