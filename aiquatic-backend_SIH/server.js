@@ -9,6 +9,7 @@ import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import OceanData from "./models/OceanData.js";
+import FishData from "./models/FishData.js";
 import RecentUpload from "./models/RecentUpload.js";
 
 // Route Imports
@@ -189,11 +190,54 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
     fs.writeFileSync(cleanedFilePath, csvData);
     console.log(`Cleaned file saved to ${cleanedFilePath}`);
 
-    const dataToInsert = cleanedData.filter(row => row.eventID != null && row.eventDate != null);
-    const finalCount = dataToInsert.length;
-    if (finalCount > 0) {
-        await OceanData.insertMany(dataToInsert);
-        console.log(`${finalCount} records saved to MongoDB.`);
+    // Filter and save data based on type
+    let dataToInsert = [];
+    let finalCount = 0;
+    
+    if (dataType === 'ocean') {
+      // Ocean data filtering
+      dataToInsert = cleanedData.filter(row => {
+        if (!row.eventID) return false; // Must have eventID
+        
+        // Check if row has at least one meaningful ocean data field
+        const dataFields = ['temperature_C', 'DepthInMeters', 'decimalLatitude', 'decimalLongitude', 'sea_water_salinity'];
+        return dataFields.some(field => row[field] != null && !isNaN(row[field]));
+      });
+      
+      finalCount = dataToInsert.length;
+      if (finalCount > 0) {
+        try {
+          await OceanData.insertMany(dataToInsert);
+          console.log(`${finalCount} ocean records saved to MongoDB.`);
+        } catch (insertError) {
+          console.error('Ocean data MongoDB insertion error:', insertError);
+          // Continue with file saving even if DB insertion fails
+        }
+      }
+    } else if (dataType === 'fish') {
+      // Fish data filtering  
+      dataToInsert = cleanedData.filter(row => {
+        if (!row.eventID) return false; // Must have eventID
+        
+        // Check if row has at least one meaningful fish data field
+        const dataFields = ['scientificName', 'Family', 'Genus', 'Species', 'Class', 'organismQuantity'];
+        return dataFields.some(field => row[field] != null && row[field] !== '');
+      });
+      
+      finalCount = dataToInsert.length;
+      if (finalCount > 0) {
+        try {
+          await FishData.insertMany(dataToInsert);
+          console.log(`${finalCount} fish records saved to MongoDB.`);
+        } catch (insertError) {
+          console.error('Fish data MongoDB insertion error:', insertError);
+          // Continue with file saving even if DB insertion fails
+        }
+      }
+    } else {
+      // For other data types (edna, otolith), just count the records but don't save to specific models
+      finalCount = cleanedData.filter(row => row.eventID != null).length;
+      console.log(`${finalCount} records processed for ${dataType} data (not saved to specific model yet).`);
     }
     
     // Save to recent uploads

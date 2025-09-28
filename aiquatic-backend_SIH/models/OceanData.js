@@ -1,15 +1,17 @@
 import mongoose from "mongoose";
 
 const oceanDataSchema = new mongoose.Schema({
-  eventID: { type: String, required: true },
-  temperature_C: { type: Number, required: true },
-  DepthInMeters: { type: Number, required: true },
-  decimalLatitude: { type: Number, required: true },
-  decimalLongitude: { type: Number, required: true },
-  sea_water_salinity: { type: Number, required: true },
-  oxygen_concentration_mgL: { type: Number, required: true },
-  sea_water_velocity: { type: Number, required: true },
-  eventDate: { type: Date, required: true },
+  eventID: { type: String, required: true }, // Keep this required as we generate it
+  temperature_C: { type: Number, required: false, default: null },
+  DepthInMeters: { type: Number, required: false, default: null },
+  decimalLatitude: { type: Number, required: false, default: null },
+  decimalLongitude: { type: Number, required: false, default: null },
+  sea_water_salinity: { type: Number, required: false, default: null },
+  oxygen_concentration_mgL: { type: Number, required: false, default: null },
+  sea_water_velocity: { type: Number, required: false, default: null },
+  eventDate: { type: Date, required: false, default: null },
+}, {
+  timestamps: true // Add created/updated timestamps
 });
 
 export default mongoose.model("OceanData", oceanDataSchema);

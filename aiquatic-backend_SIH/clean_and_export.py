@@ -108,6 +108,58 @@ def clean_ocean_data(df):
     
     return clean_df
 
+def clean_fish_data(df):
+    """Cleans data according to the Fish/Taxonomic format rules."""
+    STANDARD_COLUMNS = [
+        'eventID', 'taxonID', 'scientificName', 'vernacularName', 'Phylum',
+        'Class', 'Order', 'Family', 'Genus', 'Species', 'organismQuantity'
+    ]
+    
+    # Use the same mapping function as ocean data
+    col_map = create_strict_column_map(df.columns, STANDARD_COLUMNS)
+    
+    # Get the list of original column names that we successfully mapped
+    original_cols_to_keep = list(col_map.keys())
+    
+    if not original_cols_to_keep:
+        # If no standard columns were found, return an empty DataFrame
+        return pd.DataFrame()
+        
+    # Create the initial DataFrame with only the columns we need
+    clean_df = df[original_cols_to_keep].copy()
+    
+    # Rename the columns to the standard names
+    clean_df.rename(columns=col_map, inplace=True)
+    
+    # Remove duplicates
+    clean_df = clean_df.drop_duplicates()
+
+    # --- Apply Fish Data Validation Rules ---
+    if 'eventID' in clean_df.columns:
+        clean_df['eventID'] = clean_df['eventID'].astype(str)
+        # Generate eventIDs for missing values
+        clean_df['eventID'] = clean_df['eventID'].where(
+            clean_df['eventID'].str.len() > 0, 
+            'FISH_' + clean_df.index.astype(str)
+        )
+
+    # Convert organism quantity to numeric
+    if 'organismQuantity' in clean_df.columns:
+        clean_df['organismQuantity'] = pd.to_numeric(clean_df['organismQuantity'], errors="coerce")
+        # Allow any positive number or zero
+        clean_df['organismQuantity'] = clean_df['organismQuantity'].where(clean_df['organismQuantity'] >= 0, np.nan)
+
+    # Keep rows that have at least some taxonomic information
+    taxonomic_cols = [col for col in ['scientificName', 'Family', 'Genus', 'Species', 'Class'] if col in clean_df.columns]
+    if taxonomic_cols:
+        # Keep rows that have at least one taxonomic field with data
+        clean_df = clean_df.dropna(subset=taxonomic_cols, how='all')
+    else:
+        # If no taxonomic columns exist, just remove completely empty rows
+        clean_df.dropna(how='all', inplace=True)
+    
+    return clean_df
+
 # --- Main Execution Block ---
 if __name__ == "__main__":
     # Expects three arguments: script name, input filepath, and data type
@@ -127,9 +179,9 @@ if __name__ == "__main__":
         # Route to the correct cleaning function based on the data type from the frontend
         if data_type == 'ocean':
             cleaned_df = clean_ocean_data(uploaded_data)
-        # You can add other data types here in the future
-        # elif data_type == 'fish':
-        #     cleaned_df = clean_fish_data(uploaded_data)
+        elif data_type == 'fish':
+            cleaned_df = clean_fish_data(uploaded_data)
+        # You can add other data types here in the future (edna, otolith)
         else:
             print(json.dumps({"error": f"Unknown data type provided: {data_type}"}), file=sys.stderr)
             sys.exit(1)
