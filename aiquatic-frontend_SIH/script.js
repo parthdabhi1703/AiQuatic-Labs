@@ -1187,21 +1187,21 @@ document.addEventListener("DOMContentLoaded", () => {
             ` : `
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Temperature vs Dissolved Oxygen</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempChart', 'Modal_Ocean_Temperature_vs_Dissolved_Oxygen')" title="Export Chart">
+                  <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempDistChart', 'Modal_Ocean_Temperature_Distribution')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
-                <canvas id="modalTempChart"></canvas>
+                <canvas id="modalTempDistChart"></canvas>
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-tint"></i> Salinity Distribution</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Salinity_Distribution')" title="Export Chart">
+                  <h5><i class="fas fa-ruler-vertical"></i> Average Depth by Locality</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalDepthChart', 'Modal_Ocean_Average_Depth_by_Locality')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
-                <canvas id="modalSalinityChart"></canvas>
+                <canvas id="modalDepthChart"></canvas>
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
@@ -1214,7 +1214,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Temperature vs Salinity</h5>
+                  <h5><i class="fas fa-chart-scatter"></i> Temperature vs Salinity</h5>
                   <button class="chart-export-btn" onclick="exportSingleChart('modalTempSalinityScatterChart', 'Modal_Ocean_Temperature_vs_Salinity')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
@@ -1359,167 +1359,28 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     };
 
-    const temperatures = data
-      .map((d) =>
-        getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"])
-      )
-      .filter((t) => t !== null);
-    const salinities = data
-      .map((d) =>
-        getFieldValue(d, [
-          "Salinity(PSU)",
-          "sea_water_salinity",
-          "Salinity",
-          "psu",
-        ])
-      )
-      .filter((s) => s !== null);
-    const depths = data
-      .map((d) =>
-        getFieldValue(d, ["Depth in meter", "DepthInMeters", "Depth", "depth"])
-      )
-      .filter((d) => d !== null);
-    const labels = data
-      .map((d, index) => d.eventID || `Rec_${index + 1}`)
-      .slice(0, 15);
+    // 1. Temperature Distribution (°C) Chart
+    const tempDistCtx = document.getElementById("modalTempDistChart");
+    if (tempDistCtx && data.length > 0) {
+      const temperatures = data
+        .map((d) => getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]))
+        .filter((t) => t !== null);
 
-    // Temperature vs Dissolved Oxygen Chart (Modal)
-    const tempCtx = document.getElementById("modalTempChart");
-    if (tempCtx && data.length > 0) {
-      // Extract both temperature and dissolved oxygen data
-      const combinedData = data.map((d, index) => {
-        const temp = getFieldValue(d, [
-          "Temperature (C)", "temperature_C", "Temperature", "temp", "temperature"
-        ]);
-        const oxygen = getFieldValue(d, [
-          "oxygen_concentration_mgL", "Dissolved Oxygen", "DO", "oxygen", "o2"
-        ]);
-        return {
-          label: d.eventID || `Record ${index + 1}`,
-          temp: temp,
-          oxygen: oxygen
-        };
-      }).filter(d => d.temp !== null && d.oxygen !== null).slice(0, 20);
-
-      if (combinedData.length > 0) {
-        modalCharts.push(
-          new Chart(tempCtx, {
-            type: 'line',
-            data: {
-              labels: combinedData.map(d => d.label),
-              datasets: [
-                {
-                  label: 'Temperature (°C)',
-                  data: combinedData.map(d => d.temp),
-                  borderColor: 'rgba(239, 68, 68, 1)',
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  fill: false,
-                  tension: 0.4,
-                  yAxisID: 'y',
-                  borderWidth: 3,
-                  pointRadius: 4,
-                  pointHoverRadius: 6
-                },
-                {
-                  label: 'Dissolved Oxygen (mg/L)',
-                  data: combinedData.map(d => d.oxygen),
-                  borderColor: 'rgba(59, 130, 246, 1)',
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  fill: false,
-                  tension: 0.4,
-                  yAxisID: 'y1',
-                  borderWidth: 3,
-                  pointRadius: 4,
-                  pointHoverRadius: 6
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: {
-                mode: 'index',
-                intersect: false,
-              },
-              plugins: {
-                legend: {
-                  position: 'top',
-                  labels: {
-                    font: { size: 12, weight: 'bold' },
-                    padding: 20,
-                    usePointStyle: true
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  ticks: {
-                    font: { weight: 'bold' },
-                    maxRotation: 45
-                  }
-                },
-                y: {
-                  type: 'linear',
-                  display: true,
-                  position: 'left',
-                  title: {
-                    display: true,
-                    text: 'Temperature (°C)',
-                    font: { weight: 'bold' },
-                    color: 'rgba(239, 68, 68, 1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' },
-                    color: 'rgba(239, 68, 68, 1)'
-                  }
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  title: {
-                    display: true,
-                    text: 'Dissolved Oxygen (mg/L)',
-                    font: { weight: 'bold' },
-                    color: 'rgba(59, 130, 246, 1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' },
-                    color: 'rgba(59, 130, 246, 1)'
-                  },
-                  grid: {
-                    drawOnChartArea: false,
-                  }
-                }
-              }
-            }
-          })
-        );
-      }
-    }
-
-    // Salinity Distribution Chart (Modal)
-    const salinityCtx = document.getElementById("modalSalinityChart");
-    if (salinityCtx && data.length > 0) {
-      const salinities = data
-        .map((d) => getFieldValue(d, [
-          "Salinity", "sea_water_salinity", "Salinity (ppt)", "Salinity (psu)", "salinity", "sal"
-        ]))
-        .filter((d) => d !== null);
-      
-      if (salinities.length > 0) {
-        // Create salinity ranges for histogram
+      if (temperatures.length > 0) {
+        // Create temperature ranges for histogram
         const ranges = [
-          { label: "0-10 ppt", min: 0, max: 10, count: 0 },
-          { label: "10-20 ppt", min: 10, max: 20, count: 0 },
-          { label: "20-30 ppt", min: 20, max: 30, count: 0 },
-          { label: "30-35 ppt", min: 30, max: 35, count: 0 },
-          { label: "35+ ppt", min: 35, max: 50, count: 0 }
+          { label: "0-5°C", min: 0, max: 5, count: 0 },
+          { label: "5-10°C", min: 5, max: 10, count: 0 },
+          { label: "10-15°C", min: 10, max: 15, count: 0 },
+          { label: "15-20°C", min: 15, max: 20, count: 0 },
+          { label: "20-25°C", min: 20, max: 25, count: 0 },
+          { label: "25-30°C", min: 25, max: 30, count: 0 },
+          { label: "30+°C", min: 30, max: 50, count: 0 }
         ];
 
-        salinities.forEach(sal => {
+        temperatures.forEach(temp => {
           for (let range of ranges) {
-            if (sal >= range.min && sal < range.max) {
+            if (temp >= range.min && temp < range.max) {
               range.count++;
               break;
             }
@@ -1528,77 +1389,120 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const labels = ranges.map(r => r.label);
         const counts = ranges.map(r => r.count);
-        
-        // Professional gradient colors
-        const gradientColors = [
-          "rgba(59, 130, 246, 0.8)",   // Blue  
-          "rgba(16, 185, 129, 0.8)",   // Emerald
-          "rgba(245, 158, 11, 0.8)",   // Amber
-          "rgba(239, 68, 68, 0.8)",    // Red
-          "rgba(139, 92, 246, 0.8)"    // Violet
-      ];
-      
-      const borderColors = [
-        "rgba(99, 102, 241, 1)",     // Indigo
-        "rgba(59, 130, 246, 1)",     // Blue
-        "rgba(16, 185, 129, 1)",     // Emerald
-        "rgba(245, 158, 11, 1)",     // Amber
-        "rgba(239, 68, 68, 1)",      // Red
-        "rgba(139, 92, 246, 1)",     // Violet
-        "rgba(236, 72, 153, 1)",     // Pink
-        "rgba(20, 184, 166, 1)",     // Teal
-        "rgba(251, 146, 60, 1)",     // Orange
-        "rgba(34, 197, 94, 1)",      // Green
-        "rgba(168, 85, 247, 1)",     // Purple
-        "rgba(14, 165, 233, 1)",     // Sky
-        "rgba(132, 204, 22, 1)",     // Lime
-        "rgba(251, 113, 133, 1)",    // Rose
-        "rgba(45, 212, 191, 1)"      // Cyan
-      ];
-      
-      Object.entries(localityDepthMap).forEach(([locality, data], index) => {
-        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
-        localityLabels.push(locality);
-        averageDepths.push(avgDepth);
-      });
-      
-      if (localityLabels.length > 0) {
+
         modalCharts.push(
-          new Chart(salinityCtx, {
+          new Chart(tempDistCtx, {
             type: "bar",
             data: {
               labels: labels,
-              datasets: [
-                {
-                  label: "Salinity Distribution",
-                  data: counts,
-                  backgroundColor: gradientColors,
-                  borderColor: gradientColors.map(color => color.replace('0.8', '1')),
-                  borderWidth: 2,
-                  borderRadius: 6,
-                  borderSkipped: false
-                },
-              ],
+              datasets: [{
+                label: "Temperature Distribution",
+                data: counts,
+                backgroundColor: [
+                  "rgba(59, 130, 246, 0.8)",   // Blue
+                  "rgba(16, 185, 129, 0.8)",   // Emerald  
+                  "rgba(245, 158, 11, 0.8)",   // Amber
+                  "rgba(239, 68, 68, 0.8)",    // Red
+                  "rgba(139, 92, 246, 0.8)",   // Violet
+                  "rgba(236, 72, 153, 0.8)",   // Pink
+                  "rgba(251, 146, 60, 0.8)"    // Orange
+                ],
+                borderColor: [
+                  "rgba(59, 130, 246, 1)",
+                  "rgba(16, 185, 129, 1)",
+                  "rgba(245, 158, 11, 1)",
+                  "rgba(239, 68, 68, 1)",
+                  "rgba(139, 92, 246, 1)",
+                  "rgba(236, 72, 153, 1)",
+                  "rgba(251, 146, 60, 1)"
+                ],
+                borderWidth: 2,
+                borderRadius: 6
+              }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              interaction: {
-                intersect: false,
-                mode: 'index',
-              },
               plugins: {
-                legend: {
-                  display: false // Hide legend for cleaner look like species count charts
-                },
+                legend: { display: false },
                 tooltip: {
                   backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#fff',
-                  bodyColor: '#fff',
-                  borderColor: '#374151',
-                  borderWidth: 1,
-                  cornerRadius: 8,
-                  displayColors: true,
+                  callbacks: {
+                    title: function(context) {
+                      return `🌡️ ${context[0].label}`;
+                    },
+                    label: function(context) {
+                      return `Count: ${context.parsed.y} records`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  title: { display: true, text: "Temperature Range (°C)", font: { weight: 'bold' } },
+                  ticks: { font: { weight: 'bold' } }
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Number of Records", font: { weight: 'bold' } },
+                  ticks: { font: { weight: 'bold' } }
+                }
+              }
+            }
+          })
+        );
+      }
+    }
+
+    // 2. Average Depth by Locality Chart
+    const depthCtx = document.getElementById("modalDepthChart");
+    if (depthCtx && data.length > 0) {
+      const localityDepthMap = {};
+      
+      data.forEach(d => {
+        const locality = d.locality || d.Locality || d.location || 'Unknown';
+        const depth = getFieldValue(d, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (depth !== null) {
+          if (!localityDepthMap[locality]) {
+            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
+          }
+          localityDepthMap[locality].totalDepth += depth;
+          localityDepthMap[locality].count += 1;
+        }
+      });
+
+      const localityLabels = [];
+      const averageDepths = [];
+
+      Object.entries(localityDepthMap).forEach(([locality, data]) => {
+        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
+        localityLabels.push(locality);
+        averageDepths.push(avgDepth);
+      });
+
+      if (localityLabels.length > 0) {
+        modalCharts.push(
+          new Chart(depthCtx, {
+            type: "bar",
+            data: {
+              labels: localityLabels,
+              datasets: [{
+                label: "Average Depth",
+                data: averageDepths,
+                backgroundColor: "rgba(59, 130, 246, 0.8)",
+                borderColor: "rgba(59, 130, 246, 1)",
+                borderWidth: 2,
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
                   callbacks: {
                     title: function(context) {
                       return `📍 ${context[0].label}`;
@@ -1609,77 +1513,43 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
                 }
               },
-              scales: { 
+              scales: {
                 x: {
-                  title: { 
-                    display: true, 
-                    text: "🏙️ Locality",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                    color: '#6B7280',
-                    font: {
-                      size: 12,
-                      weight: '500'
-                    }
-                  },
-                  grid: {
-                    display: false
-                  }
+                  title: { display: true, text: "Locality", font: { weight: 'bold' } },
+                  ticks: { maxRotation: 45, font: { weight: 'bold' } }
                 },
-                y: { 
-                  beginAtZero: true, 
-                  title: { 
-                    display: true, 
-                    text: "🌊 Average Depth (meters)",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    color: '#6B7280',
-                    font: {
-                      size: 11
-                    },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Average Depth (meters)", font: { weight: 'bold' } },
+                  ticks: { 
+                    font: { weight: 'bold' },
                     callback: function(value) {
                       return value + 'm';
                     }
-                  },
-                  grid: {
-                    color: 'rgba(156, 163, 175, 0.2)',
-                    borderDash: [5, 5]
                   }
-                } 
-              },
-            },
+                }
+              }
+            }
           })
         );
       }
     }
 
-    // Temperature & Salinity by Locality Chart
+    // 3. Average Temperature & Salinity by Locality Chart
     const tempSalinityCtx = document.getElementById("modalTempSalinityChart");
     if (tempSalinityCtx && data.length > 0) {
-      // Group data by locality and calculate averages
       const localityData = {};
+      
       data.forEach(d => {
-        const locality = d.locality || 'Unknown';
-        const temp = getFieldValue(d, ["Temperature", "Temperature (°C)", "Water Temperature", "temp", "temperature"]);
-        const salinity = getFieldValue(d, ["Salinity", "Salinity (ppt)", "Salinity (psu)", "salinity", "sal"]);
+        const locality = d.locality || d.Locality || d.location || 'Unknown';
+        const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
         
         if (!localityData[locality]) {
           localityData[locality] = { temps: [], salinities: [] };
         }
-        if (temp !== null) localityData[locality].temps.push(parseFloat(temp));
-        if (salinity !== null) localityData[locality].salinities.push(parseFloat(salinity));
+        if (temp !== null) localityData[locality].temps.push(temp);
+        if (salinity !== null) localityData[locality].salinities.push(salinity);
       });
 
       const localities = Object.keys(localityData).filter(loc => 
@@ -1689,12 +1559,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (localities.length > 0) {
         const avgTemps = localities.map(loc => {
           const temps = localityData[loc].temps;
-          return temps.reduce((a, b) => a + b, 0) / temps.length;
+          return Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 100) / 100;
         });
 
         const avgSalinities = localities.map(loc => {
           const salinities = localityData[loc].salinities;
-          return salinities.reduce((a, b) => a + b, 0) / salinities.length;
+          return Math.round((salinities.reduce((a, b) => a + b, 0) / salinities.length) * 100) / 100;
         });
 
         modalCharts.push(
@@ -1704,24 +1574,22 @@ document.addEventListener("DOMContentLoaded", () => {
               labels: localities,
               datasets: [
                 {
-                  label: 'Temperature (°C)',
+                  label: 'Average Temperature (°C)',
                   data: avgTemps,
-                  backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                  borderColor: 'rgba(59, 130, 246, 1)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                  borderColor: 'rgba(239, 68, 68, 1)',
                   borderWidth: 2,
                   yAxisID: 'y',
-                  borderRadius: 6,
-                  borderSkipped: false
+                  borderRadius: 6
                 },
                 {
-                  label: 'Salinity (ppt)',
+                  label: 'Average Salinity (ppt)',
                   data: avgSalinities,
                   backgroundColor: 'rgba(16, 185, 129, 0.8)',
                   borderColor: 'rgba(16, 185, 129, 1)',
                   borderWidth: 2,
                   yAxisID: 'y1',
-                  borderRadius: 6,
-                  borderSkipped: false
+                  borderRadius: 6
                 }
               ]
             },
@@ -1740,13 +1608,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     padding: 20,
                     usePointStyle: true
                   }
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  titleFont: { size: 14, weight: 'bold' },
-                  bodyFont: { size: 12 },
-                  padding: 12,
-                  cornerRadius: 8
                 }
               },
               scales: {
@@ -1754,9 +1615,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   ticks: {
                     font: { weight: 'bold' },
                     maxRotation: 45
-                  },
-                  grid: {
-                    display: false
                   }
                 },
                 y: {
@@ -1767,14 +1625,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     display: true,
                     text: 'Temperature (°C)',
                     font: { weight: 'bold' },
-                    color: 'rgba(59, 130, 246, 1)'
+                    color: 'rgba(239, 68, 68, 1)'
                   },
                   ticks: {
                     font: { weight: 'bold' },
-                    color: 'rgba(59, 130, 246, 1)'
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
+                    color: 'rgba(239, 68, 68, 1)'
                   }
                 },
                 y1: {
@@ -1793,7 +1648,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   },
                   grid: {
                     drawOnChartArea: false,
-                  },
+                  }
                 }
               }
             }
@@ -1802,55 +1657,40 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Temperature vs Salinity Chart
+    // 4. Temperature vs Salinity Scatter Chart  
     const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
     if (tempSalinityScatterCtx && data.length > 0) {
       const scatterData = data
         .map((d) => {
-          const temp = getFieldValue(d, [
-            "Temperature (C)",
-            "temperature_C",
-            "Temperature",
-            "temp",
-            "temperature"
-          ]);
-          const salinity = getFieldValue(d, [
-            "Salinity",
-            "sea_water_salinity", 
-            "Salinity (ppt)",
-            "Salinity (psu)",
-            "salinity",
-            "sal"
-          ]);
+          const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+          const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
           
           return {
             x: temp,
             y: salinity,
-            // Color coding based on temperature for visual appeal
             backgroundColor: temp !== null ? 
               `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
               'rgba(99, 102, 241, 0.7)'
           };
         })
         .filter((d) => d.x !== null && d.y !== null)
-        .slice(0, 150); // Show more points for better scatter visualization
+        .slice(0, 150);
         
       if (scatterData.length > 0) {
+
         modalCharts.push(
           new Chart(tempSalinityScatterCtx, {
             type: "scatter",
             data: {
-              datasets: [
-                {
-                  label: "Temperature vs Salinity",
-                  data: scatterData,
-                  backgroundColor: scatterData.map(d => d.backgroundColor),
-                  borderColor: 'rgba(59, 130, 246, 0.8)',
-                  borderWidth: 1,
-                  pointRadius: 6,
-                  pointHoverRadius: 8,
-                },
-              ],
+              datasets: [{
+                label: "Temperature vs Salinity",
+                data: scatterData,
+                backgroundColor: scatterData.map(d => d.backgroundColor),
+                borderColor: 'rgba(59, 130, 246, 0.8)',
+                borderWidth: 1,
+                pointRadius: 6,
+                pointHoverRadius: 8
+              }]
             },
             options: {
               responsive: true,
@@ -1905,24 +1745,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   ticks: {
                     font: { weight: 'bold' }
                   }
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  title: {
-                    display: true,
-                    text: 'Salinity (ppt)',
-                    font: { weight: 'bold' },
-                    color: 'rgba(16, 185, 129, 1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' },
-                    color: 'rgba(16, 185, 129, 1)'
-                  },
-                  grid: {
-                    drawOnChartArea: false,
-                  }
                 }
               }
             }
@@ -1931,6 +1753,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
+
   
   function destroyModalCharts() {
     modalCharts.forEach((chart) => chart.destroy());
@@ -1944,7 +1767,7 @@ document.addEventListener("DOMContentLoaded", () => {
       closeViewModal();
     }
   });
-};
+});
 
 // --- Export Functions (Global scope) ---
 window.exportSingleChart = function(chartId, filename) {
@@ -1994,8 +1817,8 @@ window.exportSingleChart = function(chartId, filename) {
         }, index * 500); // Stagger downloads to avoid browser blocking
       });
     } else if (dataType === 'ocean') {
-      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalTempSalinityChart', 'modalTempSalinityScatterChart'];
-      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Levels', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
+      const chartIds = ['modalTempDistChart', 'modalDepthChart', 'modalTempSalinityChart', 'modalTempSalinityScatterChart'];
+      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Average_Depth_by_Locality', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
       
       chartIds.forEach((id, index) => {
         setTimeout(() => {
@@ -2004,4 +1827,3 @@ window.exportSingleChart = function(chartId, filename) {
       });
     }
   };
-});
