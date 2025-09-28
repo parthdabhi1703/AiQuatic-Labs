@@ -1906,8 +1906,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     font: { weight: 'bold' }
                   }
                 },
-              },
-            },
+                y1: {
+                  type: 'linear',
+                  display: true,
+                  position: 'right',
+                  title: {
+                    display: true,
+                    text: 'Salinity (ppt)',
+                    font: { weight: 'bold' },
+                    color: 'rgba(16, 185, 129, 1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' },
+                    color: 'rgba(16, 185, 129, 1)'
+                  },
+                  grid: {
+                    drawOnChartArea: false,
+                  }
+                }
+              }
+            }
           })
         );
       }
@@ -1918,9 +1936,18 @@ document.addEventListener("DOMContentLoaded", () => {
     modalCharts.forEach((chart) => chart.destroy());
     modalCharts = [];
   }
-  
-  // --- Export Functions ---
-  window.exportSingleChart = function(chartId, filename) {
+
+  // Close modal when clicking outside
+  window.addEventListener('click', (event) => {
+    const modal = document.getElementById('viewModal');
+    if (event.target === modal) {
+      closeViewModal();
+    }
+  });
+};
+
+// --- Export Functions (Global scope) ---
+window.exportSingleChart = function(chartId, filename) {
     const canvas = document.getElementById(chartId);
     if (canvas) {
       const link = document.createElement('a');
@@ -1977,12 +2004,4 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   };
-  
-  // Close modal when clicking outside
-  window.addEventListener('click', (event) => {
-    const modal = document.getElementById('viewModal');
-    if (event.target === modal) {
-      closeViewModal();
-    }
-  });
 });
