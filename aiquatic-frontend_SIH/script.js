@@ -561,6 +561,18 @@ document.addEventListener("DOMContentLoaded", () => {
         getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"])
       )
       .filter((t) => t !== null);
+
+    const oxygenLevels = oceanData
+      .map((d) =>
+        getFieldValue(d, [
+          "Oxygen Concentration (mg/L)",
+          "oxygen_concentration_mgL",
+          "Dissolved O₂",
+          "oxygen",
+        ])
+      )
+      .filter((o) => o !== null);
+
     const salinities = oceanData
       .map((d) =>
         getFieldValue(d, [
@@ -577,51 +589,38 @@ document.addEventListener("DOMContentLoaded", () => {
       )
       .filter((d) => d !== null);
     const labels = oceanData
-      .map((d, index) => d.eventID || `Rec_${index + 1}`)
-      .slice(0, 15);
-    // Extract dissolved oxygen data
-    const dissolvedOxygen = oceanData
-      .map((d) =>
-        getFieldValue(d, ["Dissolved Oxygen", "dissolved_oxygen", "DO", "oxygen", "O2"])
-      )
-      .filter((o) => o !== null);
+      .map((d) => d.eventDate || d.eventID || "Unknown")
+      .slice(0, 30); // match Python top 30
 
     const tempCtx = document.getElementById("tempChart");
-    if (tempCtx && (temperatures.length > 0 || dissolvedOxygen.length > 0)) {
-      const datasets = [];
-      
-      // Add temperature dataset if available
-      if (temperatures.length > 0) {
-        datasets.push({
-          label: "Temperature (°C)",
-          data: temperatures.slice(0, 30),
-          borderColor: "#ef4444",
-          backgroundColor: "rgba(239,68,68,0.1)",
-          fill: false,
-          tension: 0.4,
-          yAxisID: 'y'
-        });
-      }
-      
-      // Add dissolved oxygen dataset if available
-      if (dissolvedOxygen.length > 0) {
-        datasets.push({
-          label: "Dissolved Oxygen (mg/L)",
-          data: dissolvedOxygen.slice(0, 30),
-          borderColor: "#3b82f6",
-          backgroundColor: "rgba(59,130,246,0.1)",
-          fill: false,
-          tension: 0.4,
-          yAxisID: 'y1'
-        });
-      }
-
+    if (tempCtx && temperatures.length > 0 && oxygenLevels.length > 0) {
       activeCharts.push(
         new Chart(tempCtx, {
           type: "line",
           data: {
-            labels: labels.slice(0, 30), // Show top 30 records
-            datasets: datasets,
+            labels: labels,
+            datasets: [
+              {
+                label: "Temperature (°C)",
+                data: temperatures.slice(0, 30),
+                borderColor: "rgba(231,107,243,1)", // pastel purple
+                backgroundColor: "rgba(231,107,243,0.2)",
+                fill: true,
+                tension: 0.4, // smooth curve (spline-like)
+                borderWidth: 3,
+                pointRadius: 6,
+              },
+              {
+                label: "Dissolved O₂ (mg/L)",
+                data: oxygenLevels.slice(0, 30),
+                borderColor: "rgba(0,176,246,1)", // pastel blue
+                backgroundColor: "rgba(0,176,246,0.2)",
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 6,
+              },
+            ],
           },
           options: {
             responsive: true,
@@ -629,46 +628,22 @@ document.addEventListener("DOMContentLoaded", () => {
             plugins: {
               title: {
                 display: true,
-                text: "temperature_C & Dissolved Oxygen (Top 30 Records)",
-                font: {
-                  size: 16,
-                  weight: 'bold'
-                }
+                text: "Temperature & Dissolved Oxygen (Top 30 Records)",
               },
               legend: {
                 display: true,
-                position: 'top'
-              }
+                labels: { usePointStyle: true },
+              },
             },
-            scales: { 
-              x: { 
-                title: { display: true, text: "Collection Date" } 
+            scales: {
+              x: {
+                title: { display: true, text: "Collection Date" },
               },
-              y: { 
-                type: 'linear',
-                display: true,
-                position: 'left',
-                beginAtZero: false, 
-                title: { display: true, text: "Temperature (°C)" },
-                grid: {
-                  drawOnChartArea: false,
-                }
-              },
-              y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
+              y: {
+                title: { display: true, text: "Values" },
                 beginAtZero: false,
-                title: { display: true, text: "Dissolved Oxygen (mg/L)" },
-                grid: {
-                  drawOnChartArea: false,
-                }
-              }
+              },
             },
-            interaction: {
-              mode: 'index',
-              intersect: false,
-            }
           },
         })
       );
