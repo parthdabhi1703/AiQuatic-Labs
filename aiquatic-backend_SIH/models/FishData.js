@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const fishDataSchema = new mongoose.Schema({
   eventID: { type: String, required: true },
-  taxonID: { type: String, required: true },
+  taxonID: { type: String },
   scientificName: { type: String, required: true },
   vernacularName: { type: String },
   Phylum: { type: String },

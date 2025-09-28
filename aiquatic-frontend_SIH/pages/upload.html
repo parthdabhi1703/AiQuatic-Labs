@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AiQuatic Labs - Data Upload & Visualization</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <link
+      rel="shortcut icon"
+      type="image/x-icon"
+      href="../assets/favicon.ico"
+    />
     <link rel="stylesheet" href="../style.css" />
     <link
       rel="stylesheet"
@@ -131,11 +138,11 @@
         </div>
       </section>
 
-      <!-- Visualization Section (No Changes) -->
+      <!-- Visualization Section (Dynamic) -->
       <section class="upload-card">
         <div class="upload-header">
-          <h3><i class="fas fa-chart-bar"></i> Ocean Data Visualization</h3>
-          <p>
+          <h3 id="visualizationTitle"><i class="fas fa-chart-bar"></i> Ocean Data Visualization</h3>
+          <p id="visualizationDescription">
             Interactive charts showing Temperature, Salinity, Depth distribution
             and their relationships from your uploaded data.
           </p>
@@ -143,8 +150,8 @@
         <div id="visualizationBox" class="visualization-box">
           <div class="placeholder">
             <i class="fas fa-chart-line"></i>
-            <p>Upload an Ocean Data file to see detailed visualizations</p>
-            <small style="color: #6b7280; display: block; margin-top: 10px">
+            <p id="placeholderText">Upload an Ocean Data file to see detailed visualizations</p>
+            <small id="chartDescription" style="color: #6b7280; display: block; margin-top: 10px">
               Charts will show: Temperature trends, Salinity levels, Depth
               distribution, and Temperature-Depth correlations
             </small>
