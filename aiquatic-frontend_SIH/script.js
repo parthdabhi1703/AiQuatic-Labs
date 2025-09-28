@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="action-btn view-btn" onclick="openViewModal('${upload._id}')">
               <i class="fas fa-eye"></i> View
           </button>
-          <a href="${window.API_CONFIG.BASE_URL}/api/download/${upload.cleanedFilename}" 
+          <a href="${window.API_CONFIG.BASE_URL}/download/${upload.cleanedFilename}" 
              class="action-btn download-btn" 
              download="${downloadFilename}">
               <i class="fas fa-download"></i> Download

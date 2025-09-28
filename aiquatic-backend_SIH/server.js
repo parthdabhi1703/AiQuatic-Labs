@@ -40,7 +40,37 @@ try {
 }
 
 // Route for DOWNLOADING files (as attachments)
-app.use('/api/download', express.static(cleanedDirPath));
+app.get('/api/download/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(cleanedDirPath, filename);
+
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ 
+      error: "File not found", 
+      message: "The requested file may have been moved, deleted, or never existed.",
+      filename: filename,
+      suggestion: "Please re-upload your data or check the recent uploads list."
+    });
+  }
+
+  // Set headers for download
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  
+  // Send the file
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('File send error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: "File send error", 
+          message: "An error occurred while sending the file." 
+        });
+      }
+    }
+  });
+});
 
 // --- [NEW] ROUTE FOR VIEWING FILES ---
 // This route will serve the file and tell the browser to display it inline.
@@ -282,38 +312,6 @@ app.use("/api/fish_data", fishDataRoutes);
 app.use("/api/dataset_uploads", datasetUploadRoutes); 
 app.use("/api/insights", biodiversityInsightsRoutes);
 app.use("/api/recent-uploads", recentUploadsRoutes);
-
-// Specific download route with better error handling
-app.get('/download/:filename', (req, res) => {
-  const { filename } = req.params;
-  const filePath = path.join(cleanedDirPath, filename);
-
-  // Check if file exists
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ 
-      error: "File not found", 
-      message: "The requested file may have been moved, deleted, or never existed.",
-      filename: filename,
-      suggestion: "Please re-upload your data or check the recent uploads list."
-    });
-  }
-
-  // Set appropriate headers for download
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  
-  // Stream the file
-  const fileStream = fs.createReadStream(filePath);
-  fileStream.pipe(res);
-  
-  fileStream.on('error', (error) => {
-    console.error('File stream error:', error);
-    res.status(500).json({ 
-      error: "File read error", 
-      message: "An error occurred while reading the file." 
-    });
-  });
-});
 
 // Root endpoint
 app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API! 🚀"));
