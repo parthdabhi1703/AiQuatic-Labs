@@ -16,5 +16,6 @@ services:
         value: your_secret_key_change_in_production
       - key: PORT
         value: 10000
-    autoDeploy: false
+    autoDeploy: true
+    branch: main
     healthCheckPath: /
