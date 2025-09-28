@@ -183,8 +183,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const existingCards = recentUploadsEl.querySelectorAll('.file-card');
       existingCards.forEach(card => card.remove());
       
-      // Add each upload
-      recentUploads.forEach(upload => {
+      // Add each upload (limit to 5 most recent files)
+      recentUploads.slice(0, 5).forEach(upload => {
         addRecentUploadCard(upload);
       });
       
