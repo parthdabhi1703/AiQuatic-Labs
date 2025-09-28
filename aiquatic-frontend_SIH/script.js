@@ -45,9 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
       case 'ocean':
       default:
         if (titleEl) titleEl.innerHTML = '<i class="fas fa-chart-bar"></i> Ocean Data Visualization';
-        if (descriptionEl) descriptionEl.textContent = 'Interactive charts showing Temperature, Salinity, Depth distribution and their relationships from your uploaded data.';
+        if (descriptionEl) descriptionEl.textContent = 'Interactive charts showing Temperature, Salinity distributions, geographic analysis, and temperature-salinity relationships from your uploaded data.';
         if (placeholderEl) placeholderEl.textContent = 'Upload an Ocean Data file to see detailed visualizations';
-        if (chartDescEl) chartDescEl.textContent = 'Charts will show: Temperature trends, Salinity levels, Depth distribution, and Temperature-Depth correlations';
+        if (chartDescEl) chartDescEl.textContent = 'Charts will show: Temperature trends, Salinity levels, Geographic temperature & salinity analysis, and Temperature-Salinity correlations';
         break;
     }
   }
@@ -563,12 +563,12 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
           <div class="chart-container">
             <div class="chart-header">
-              <h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('tempDepthChart', 'Ocean_Temperature_vs_Depth')" title="Export Chart">
+              <h5><i class="fas fa-thermometer-half"></i> Temperature vs Salinity</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('tempSalinityScatterChart', 'Ocean_Temperature_vs_Salinity')" title="Export Chart">
                 <i class="fas fa-download"></i>
               </button>
             </div>
-            <canvas id="tempDepthChart"></canvas>
+            <canvas id="tempSalinityScatterChart"></canvas>
           </div>
         </div>
       </div>`;
@@ -997,48 +997,109 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
     }
-    const tempDepthCtx = document.getElementById("tempDepthChart");
-    if (tempDepthCtx && oceanData.length > 0) {
+    const tempSalinityScatterCtx = document.getElementById("tempSalinityScatterChart");
+    if (tempSalinityScatterCtx && oceanData.length > 0) {
       const scatterData = oceanData
-        .map((d) => ({
-          x: getFieldValue(d, [
-            "Depth in meter",
-            "DepthInMeters",
-            "Depth",
-            "depth",
-          ]),
-          y: getFieldValue(d, [
+        .map((d) => {
+          const temp = getFieldValue(d, [
             "Temperature (C)",
             "temperature_C",
             "Temperature",
             "temp",
-          ]),
-        }))
+            "temperature"
+          ]);
+          const salinity = getFieldValue(d, [
+            "Salinity",
+            "sea_water_salinity", 
+            "Salinity (ppt)",
+            "Salinity (psu)",
+            "salinity",
+            "sal"
+          ]);
+          
+          return {
+            x: temp,
+            y: salinity,
+            // Color coding based on temperature for visual appeal
+            backgroundColor: temp !== null ? 
+              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
+              'rgba(99, 102, 241, 0.7)'
+          };
+        })
         .filter((d) => d.x !== null && d.y !== null)
-        .slice(0, 100);
+        .slice(0, 150); // Show more points for better scatter visualization
+        
       if (scatterData.length > 0) {
         activeCharts.push(
-          new Chart(tempDepthCtx, {
+          new Chart(tempSalinityScatterCtx, {
             type: "scatter",
             data: {
               datasets: [
                 {
-                  label: "Temp vs Depth",
+                  label: "Temperature vs Salinity",
                   data: scatterData,
-                  backgroundColor: "rgba(139,92,246,0.7)",
+                  backgroundColor: scatterData.map(d => d.backgroundColor),
+                  borderColor: 'rgba(59, 130, 246, 0.8)',
+                  borderWidth: 1,
+                  pointRadius: 6,
+                  pointHoverRadius: 8,
                 },
               ],
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    font: { size: 12, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleFont: { size: 14, weight: 'bold' },
+                  bodyFont: { size: 12 },
+                  padding: 12,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label: function(context) {
+                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
+                    }
+                  }
+                }
+              },
               scales: {
                 x: {
                   type: "linear",
                   position: "bottom",
-                  title: { display: true, text: "Depth (meters)" },
+                  title: { 
+                    display: true, 
+                    text: "Temperature (°C)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
                 },
-                y: { title: { display: true, text: "Temperature (°C)" } },
+                y: { 
+                  title: { 
+                    display: true, 
+                    text: "Salinity (ppt)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                },
               },
             },
           })
@@ -1153,12 +1214,12 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempDepthChart', 'Modal_Ocean_Temperature_vs_Depth')" title="Export Chart">
+                  <h5><i class="fas fa-thermometer-half"></i> Temperature vs Salinity</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempSalinityScatterChart', 'Modal_Ocean_Temperature_vs_Salinity')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
-                <canvas id="modalTempDepthChart"></canvas>
+                <canvas id="modalTempSalinityScatterChart"></canvas>
               </div>
             `}
           </div>
@@ -1659,49 +1720,110 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Temperature vs Depth Chart
-    const tempDepthCtx = document.getElementById("modalTempDepthChart");
-    if (tempDepthCtx && data.length > 0) {
+    // Temperature vs Salinity Chart
+    const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
+    if (tempSalinityScatterCtx && data.length > 0) {
       const scatterData = data
-        .map((d) => ({
-          x: getFieldValue(d, [
-            "Depth in meter",
-            "DepthInMeters",
-            "Depth",
-            "depth",
-          ]),
-          y: getFieldValue(d, [
+        .map((d) => {
+          const temp = getFieldValue(d, [
             "Temperature (C)",
             "temperature_C",
             "Temperature",
             "temp",
-          ]),
-        }))
+            "temperature"
+          ]);
+          const salinity = getFieldValue(d, [
+            "Salinity",
+            "sea_water_salinity", 
+            "Salinity (ppt)",
+            "Salinity (psu)",
+            "salinity",
+            "sal"
+          ]);
+          
+          return {
+            x: temp,
+            y: salinity,
+            // Color coding based on temperature for visual appeal
+            backgroundColor: temp !== null ? 
+              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
+              'rgba(99, 102, 241, 0.7)'
+          };
+        })
         .filter((d) => d.x !== null && d.y !== null)
-        .slice(0, 100);
+        .slice(0, 150); // Show more points for better scatter visualization
+        
       if (scatterData.length > 0) {
         modalCharts.push(
-          new Chart(tempDepthCtx, {
+          new Chart(tempSalinityScatterCtx, {
             type: "scatter",
             data: {
               datasets: [
                 {
-                  label: "Temp vs Depth",
+                  label: "Temperature vs Salinity",
                   data: scatterData,
-                  backgroundColor: "rgba(139,92,246,0.7)",
+                  backgroundColor: scatterData.map(d => d.backgroundColor),
+                  borderColor: 'rgba(59, 130, 246, 0.8)',
+                  borderWidth: 1,
+                  pointRadius: 6,
+                  pointHoverRadius: 8,
                 },
               ],
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    font: { size: 12, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleFont: { size: 14, weight: 'bold' },
+                  bodyFont: { size: 12 },
+                  padding: 12,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label: function(context) {
+                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
+                    }
+                  }
+                }
+              },
               scales: {
                 x: {
                   type: "linear",
                   position: "bottom",
-                  title: { display: true, text: "Depth (meters)" },
+                  title: { 
+                    display: true, 
+                    text: "Temperature (°C)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
                 },
-                y: { title: { display: true, text: "Temperature (°C)" } },
+                y: { 
+                  title: { 
+                    display: true, 
+                    text: "Salinity (ppt)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                },
               },
             },
           })
@@ -1740,8 +1862,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }, index * 500); // Stagger downloads to avoid browser blocking
       });
     } else if (dataType === 'ocean') {
-      const chartIds = ['tempChart', 'salinityChart', 'depthChart', 'tempDepthChart'];
-      const chartNames = ['Ocean_Temperature_Distribution', 'Ocean_Salinity_Levels', 'Ocean_Depth_Distribution', 'Ocean_Temperature_vs_Depth'];
+      const chartIds = ['tempChart', 'salinityChart', 'tempSalinityChart', 'tempSalinityScatterChart'];
+      const chartNames = ['Ocean_Temperature_Distribution', 'Ocean_Salinity_Levels', 'Ocean_Temperature_Salinity_by_Locality', 'Ocean_Temperature_vs_Salinity'];
       
       chartIds.forEach((id, index) => {
         setTimeout(() => {
@@ -1763,8 +1885,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }, index * 500); // Stagger downloads to avoid browser blocking
       });
     } else if (dataType === 'ocean') {
-      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalDepthChart', 'modalTempDepthChart'];
-      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Levels', 'Modal_Ocean_Depth_Distribution', 'Modal_Ocean_Temperature_vs_Depth'];
+      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalTempSalinityChart', 'modalTempSalinityScatterChart'];
+      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Levels', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
       
       chartIds.forEach((id, index) => {
         setTimeout(() => {
