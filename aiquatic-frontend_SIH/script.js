@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="action-btn view-btn" onclick="openViewModal('${upload._id}')">
               <i class="fas fa-eye"></i> View
           </button>
-          <a href="${window.API_CONFIG.BASE_URL}/download/${upload.cleanedFilename}" 
+          <a href="${window.API_CONFIG.BASE_URL}/api/download/${upload.cleanedFilename}" 
              class="action-btn download-btn" 
              download="${downloadFilename}">
               <i class="fas fa-download"></i> Download
@@ -838,10 +838,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
     } catch (error) {
+      console.error('Modal error:', error);
       modalBody.innerHTML = `
         <div class="error">
           <i class="fas fa-exclamation-triangle"></i>
-          <p>Error loading visualization: ${error.message}</p>
+          <h4>Unable to Load Visualization</h4>
+          <p>This file may not be available for visualization. Possible reasons:</p>
+          <ul style="text-align: left; margin: 1rem 0;">
+            <li>File was uploaded before visualization feature</li>
+            <li>File may have been moved or deleted</li>
+            <li>Network connectivity issue</li>
+          </ul>
+          <p><strong>Solution:</strong> Try downloading the file instead, or re-upload the data for full visualization features.</p>
+          <div style="margin-top: 1rem;">
+            <button onclick="closeViewModal()" class="action-btn">Close</button>
+          </div>
         </div>
       `;
     }

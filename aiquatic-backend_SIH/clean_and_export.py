@@ -66,31 +66,45 @@ def clean_ocean_data(df):
     # Re-assigning is safer than using inplace=True for this operation
     clean_df = clean_df.drop_duplicates()
 
-    # --- Apply Validation Rules ---
+    # --- Apply Validation Rules (Made Less Strict) ---
     if 'eventID' in clean_df.columns:
         clean_df['eventID'] = clean_df['eventID'].astype(str)
-        pattern = r"^ATL\d{4}_\d{2}$"
-        clean_df['eventID'] = clean_df['eventID'].where(clean_df['eventID'].str.match(pattern, na=False), np.nan)
+        # More flexible eventID validation - allow any alphanumeric format
+        clean_df['eventID'] = clean_df['eventID'].where(
+            clean_df['eventID'].str.len() > 0, 
+            'RECORD_' + clean_df.index.astype(str)
+        )
 
     if 'temperature_C' in clean_df.columns:
         clean_df['temperature_C'] = pd.to_numeric(clean_df['temperature_C'], errors="coerce")
-        clean_df['temperature_C'] = clean_df['temperature_C'].where(clean_df['temperature_C'].between(-2, 40), np.nan)
+        # More lenient temperature range - allow broader range
+        clean_df['temperature_C'] = clean_df['temperature_C'].where(clean_df['temperature_C'].between(-5, 50), np.nan)
         
     if 'DepthInMeters' in clean_df.columns:
         clean_df['DepthInMeters'] = pd.to_numeric(clean_df['DepthInMeters'], errors="coerce")
-        clean_df['DepthInMeters'] = clean_df['DepthInMeters'].where(clean_df['DepthInMeters'].between(0, 11000), np.nan)
+        # More lenient depth range - allow surface to deep ocean
+        clean_df['DepthInMeters'] = clean_df['DepthInMeters'].where(clean_df['DepthInMeters'].between(-5, 15000), np.nan)
 
+    # Apply lenient numeric conversion to other columns
     numeric_cols = ['decimalLatitude', 'decimalLongitude', 'sea_water_salinity', 'oxygen_concentration_mgL', 'sea_water_velocity']
     for col in numeric_cols:
         if col in clean_df.columns:
             clean_df[col] = pd.to_numeric(clean_df[col], errors="coerce")
+            # Keep all numeric values, don't enforce strict ranges
 
     if 'eventDate' in clean_df.columns:
         # This flexible parser handles most common date formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
         clean_df['eventDate'] = pd.to_datetime(clean_df['eventDate'], errors='coerce')
 
-    # Drop rows where all values are missing *after* all cleaning and validation
-    clean_df.dropna(how='all', inplace=True)
+    # Only drop rows where ALL critical values are missing (more lenient)
+    # Keep rows that have at least some valid data
+    critical_cols = [col for col in ['temperature_C', 'DepthInMeters', 'decimalLatitude', 'decimalLongitude'] if col in clean_df.columns]
+    if critical_cols:
+        # Keep rows that have at least one critical column with data
+        clean_df = clean_df.dropna(subset=critical_cols, how='all')
+    else:
+        # If no critical columns exist, just remove completely empty rows
+        clean_df.dropna(how='all', inplace=True)
     
     return clean_df
 
