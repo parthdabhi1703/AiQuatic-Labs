@@ -520,8 +520,8 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
           <div class="chart-container">
             <div class="chart-header">
-              <h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('salinityChart', 'Ocean_Salinity_Levels')" title="Export Chart">
+              <h5><i class="fas fa-map-marker-alt"></i> Average Depth by Locality</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('salinityChart', 'Ocean_Average_Depth_by_Locality')" title="Export Chart">
                 <i class="fas fa-download"></i>
               </button>
             </div>
@@ -608,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 fill: true,
                 tension: 0.4, // smooth curve (spline-like)
                 borderWidth: 3,
-                pointRadius: 6,
+                pointRadius: 4,
               },
               {
                 label: "Dissolved O₂ (mg/L)",
@@ -618,7 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 fill: true,
                 tension: 0.4,
                 borderWidth: 3,
-                pointRadius: 6,
+                pointRadius: 4,
               },
             ],
           },
@@ -649,29 +649,174 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
     const salinityCtx = document.getElementById("salinityChart");
-    if (salinityCtx && salinities.length > 0) {
-      activeCharts.push(
-        new Chart(salinityCtx, {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Salinity (PSU)",
-                data: salinities.slice(0, 15),
-                backgroundColor: "rgba(59,130,246,0.7)",
-                borderColor: "#3b82f6",
-                borderWidth: 1,
+    if (salinityCtx && oceanData.length > 0) {
+      // Calculate average depth by locality
+      const localityDepthMap = {};
+      
+      oceanData.forEach((record) => {
+        const locality = record.locality || record.Locality || "Unknown";
+        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (depth !== null) {
+          if (!localityDepthMap[locality]) {
+            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
+          }
+          localityDepthMap[locality].totalDepth += depth;
+          localityDepthMap[locality].count += 1;
+        }
+      });
+      
+      // Calculate averages and prepare data
+      const localityLabels = [];
+      const averageDepths = [];
+      
+      // Modern gradient colors for a professional look
+      const gradientColors = [
+        "rgba(99, 102, 241, 0.8)",   // Indigo
+        "rgba(59, 130, 246, 0.8)",   // Blue  
+        "rgba(16, 185, 129, 0.8)",   // Emerald
+        "rgba(245, 158, 11, 0.8)",   // Amber
+        "rgba(239, 68, 68, 0.8)",    // Red
+        "rgba(139, 92, 246, 0.8)",   // Violet
+        "rgba(236, 72, 153, 0.8)",   // Pink
+        "rgba(20, 184, 166, 0.8)",   // Teal
+        "rgba(251, 146, 60, 0.8)",   // Orange
+        "rgba(34, 197, 94, 0.8)",    // Green
+        "rgba(168, 85, 247, 0.8)",   // Purple
+        "rgba(14, 165, 233, 0.8)",   // Sky
+        "rgba(132, 204, 22, 0.8)",   // Lime
+        "rgba(251, 113, 133, 0.8)",  // Rose
+        "rgba(45, 212, 191, 0.8)"    // Cyan
+      ];
+      
+      const borderColors = [
+        "rgba(99, 102, 241, 1)",     // Indigo
+        "rgba(59, 130, 246, 1)",     // Blue
+        "rgba(16, 185, 129, 1)",     // Emerald
+        "rgba(245, 158, 11, 1)",     // Amber
+        "rgba(239, 68, 68, 1)",      // Red
+        "rgba(139, 92, 246, 1)",     // Violet
+        "rgba(236, 72, 153, 1)",     // Pink
+        "rgba(20, 184, 166, 1)",     // Teal
+        "rgba(251, 146, 60, 1)",     // Orange
+        "rgba(34, 197, 94, 1)",      // Green
+        "rgba(168, 85, 247, 1)",     // Purple
+        "rgba(14, 165, 233, 1)",     // Sky
+        "rgba(132, 204, 22, 1)",     // Lime
+        "rgba(251, 113, 133, 1)",    // Rose
+        "rgba(45, 212, 191, 1)"      // Cyan
+      ];
+      
+      Object.entries(localityDepthMap).forEach(([locality, data], index) => {
+        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
+        localityLabels.push(locality);
+        averageDepths.push(avgDepth);
+      });
+      
+      if (localityLabels.length > 0) {
+        activeCharts.push(
+          new Chart(salinityCtx, {
+            type: "bar",
+            data: {
+              labels: localityLabels,
+              datasets: [
+                {
+                  label: "Average Depth",
+                  data: averageDepths,
+                  backgroundColor: gradientColors.slice(0, localityLabels.length),
+                  borderColor: borderColors.slice(0, localityLabels.length),
+                  borderWidth: 3,
+                  borderRadius: 8,
+                  borderSkipped: false,
+                  hoverBackgroundColor: gradientColors.slice(0, localityLabels.length).map(color => color.replace('0.8', '0.9')),
+                  hoverBorderColor: borderColors.slice(0, localityLabels.length),
+                  hoverBorderWidth: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: {
+                intersect: false,
+                mode: 'index',
               },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: false, title: { display: true, text: "PSU" } } },
-          },
-        })
-      );
+              plugins: {
+                legend: {
+                  display: false // Hide legend for cleaner look like species count charts
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#374151',
+                  borderWidth: 1,
+                  cornerRadius: 8,
+                  displayColors: true,
+                  callbacks: {
+                    title: function(context) {
+                      return `📍 ${context[0].label}`;
+                    },
+                    label: function(context) {
+                      return `🌊 Average Depth: ${context.parsed.y}m`;
+                    }
+                  }
+                }
+              },
+              scales: { 
+                x: {
+                  title: { 
+                    display: true, 
+                    text: "🏙️ Locality",
+                    font: {
+                      size: 14,
+                      weight: 'bold'
+                    },
+                    color: '#374151'
+                  },
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    color: '#6B7280',
+                    font: {
+                      size: 12,
+                      weight: '500'
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                },
+                y: { 
+                  beginAtZero: true, 
+                  title: { 
+                    display: true, 
+                    text: "🌊 Average Depth (meters)",
+                    font: {
+                      size: 14,
+                      weight: 'bold'
+                    },
+                    color: '#374151'
+                  },
+                  ticks: {
+                    color: '#6B7280',
+                    font: {
+                      size: 11
+                    },
+                    callback: function(value) {
+                      return value + 'm';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(156, 163, 175, 0.2)',
+                    borderDash: [5, 5]
+                  }
+                } 
+              },
+            },
+          })
+        );
+      }
     }
     const depthCtx = document.getElementById("depthChart");
     if (depthCtx && depths.length > 0) {
@@ -843,8 +988,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Salinity_Levels')" title="Export Chart">
+                  <h5><i class="fas fa-map-marker-alt"></i> Average Depth by Locality</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Average_Depth_by_Locality')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
@@ -1058,31 +1203,176 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    // Salinity Chart
+    // Average Depth by Locality Chart
     const salinityCtx = document.getElementById("modalSalinityChart");
-    if (salinityCtx && salinities.length > 0) {
-      modalCharts.push(
-        new Chart(salinityCtx, {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Salinity (PSU)",
-                data: salinities.slice(0, 15),
-                backgroundColor: "rgba(59,130,246,0.7)",
-                borderColor: "#3b82f6",
-                borderWidth: 1,
+    if (salinityCtx && data.length > 0) {
+      // Calculate average depth by locality
+      const localityDepthMap = {};
+      
+      data.forEach((record) => {
+        const locality = record.locality || record.Locality || "Unknown";
+        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (depth !== null) {
+          if (!localityDepthMap[locality]) {
+            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
+          }
+          localityDepthMap[locality].totalDepth += depth;
+          localityDepthMap[locality].count += 1;
+        }
+      });
+      
+      // Calculate averages and prepare data
+      const localityLabels = [];
+      const averageDepths = [];
+      
+      // Modern gradient colors for a professional look (same as main chart)
+      const gradientColors = [
+        "rgba(99, 102, 241, 0.8)",   // Indigo
+        "rgba(59, 130, 246, 0.8)",   // Blue  
+        "rgba(16, 185, 129, 0.8)",   // Emerald
+        "rgba(245, 158, 11, 0.8)",   // Amber
+        "rgba(239, 68, 68, 0.8)",    // Red
+        "rgba(139, 92, 246, 0.8)",   // Violet
+        "rgba(236, 72, 153, 0.8)",   // Pink
+        "rgba(20, 184, 166, 0.8)",   // Teal
+        "rgba(251, 146, 60, 0.8)",   // Orange
+        "rgba(34, 197, 94, 0.8)",    // Green
+        "rgba(168, 85, 247, 0.8)",   // Purple
+        "rgba(14, 165, 233, 0.8)",   // Sky
+        "rgba(132, 204, 22, 0.8)",   // Lime
+        "rgba(251, 113, 133, 0.8)",  // Rose
+        "rgba(45, 212, 191, 0.8)"    // Cyan
+      ];
+      
+      const borderColors = [
+        "rgba(99, 102, 241, 1)",     // Indigo
+        "rgba(59, 130, 246, 1)",     // Blue
+        "rgba(16, 185, 129, 1)",     // Emerald
+        "rgba(245, 158, 11, 1)",     // Amber
+        "rgba(239, 68, 68, 1)",      // Red
+        "rgba(139, 92, 246, 1)",     // Violet
+        "rgba(236, 72, 153, 1)",     // Pink
+        "rgba(20, 184, 166, 1)",     // Teal
+        "rgba(251, 146, 60, 1)",     // Orange
+        "rgba(34, 197, 94, 1)",      // Green
+        "rgba(168, 85, 247, 1)",     // Purple
+        "rgba(14, 165, 233, 1)",     // Sky
+        "rgba(132, 204, 22, 1)",     // Lime
+        "rgba(251, 113, 133, 1)",    // Rose
+        "rgba(45, 212, 191, 1)"      // Cyan
+      ];
+      
+      Object.entries(localityDepthMap).forEach(([locality, data], index) => {
+        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
+        localityLabels.push(locality);
+        averageDepths.push(avgDepth);
+      });
+      
+      if (localityLabels.length > 0) {
+        modalCharts.push(
+          new Chart(salinityCtx, {
+            type: "bar",
+            data: {
+              labels: localityLabels,
+              datasets: [
+                {
+                  label: "Average Depth",
+                  data: averageDepths,
+                  backgroundColor: gradientColors.slice(0, localityLabels.length),
+                  borderColor: borderColors.slice(0, localityLabels.length),
+                  borderWidth: 3,
+                  borderRadius: 8,
+                  borderSkipped: false,
+                  hoverBackgroundColor: gradientColors.slice(0, localityLabels.length).map(color => color.replace('0.8', '0.9')),
+                  hoverBorderColor: borderColors.slice(0, localityLabels.length),
+                  hoverBorderWidth: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: {
+                intersect: false,
+                mode: 'index',
               },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: false, title: { display: true, text: "PSU" } } },
-          },
-        })
-      );
+              plugins: {
+                legend: {
+                  display: false // Hide legend for cleaner look like species count charts
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#374151',
+                  borderWidth: 1,
+                  cornerRadius: 8,
+                  displayColors: true,
+                  callbacks: {
+                    title: function(context) {
+                      return `📍 ${context[0].label}`;
+                    },
+                    label: function(context) {
+                      return `🌊 Average Depth: ${context.parsed.y}m`;
+                    }
+                  }
+                }
+              },
+              scales: { 
+                x: {
+                  title: { 
+                    display: true, 
+                    text: "🏙️ Locality",
+                    font: {
+                      size: 14,
+                      weight: 'bold'
+                    },
+                    color: '#374151'
+                  },
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    color: '#6B7280',
+                    font: {
+                      size: 12,
+                      weight: '500'
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                },
+                y: { 
+                  beginAtZero: true, 
+                  title: { 
+                    display: true, 
+                    text: "🌊 Average Depth (meters)",
+                    font: {
+                      size: 14,
+                      weight: 'bold'
+                    },
+                    color: '#374151'
+                  },
+                  ticks: {
+                    color: '#6B7280',
+                    font: {
+                      size: 11
+                    },
+                    callback: function(value) {
+                      return value + 'm';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(156, 163, 175, 0.2)',
+                    borderDash: [5, 5]
+                  }
+                } 
+              },
+            },
+          })
+        );
+      }
     }
 
     // Depth Chart

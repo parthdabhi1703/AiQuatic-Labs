@@ -42,7 +42,7 @@ def create_strict_column_map(uploaded_cols, standard_cols):
 def clean_ocean_data(df):
     """Cleans data according to the Ocean/Standardized format rules."""
     STANDARD_COLUMNS = [
-        'eventID', 'temperature_C', 'DepthInMeters', 'decimalLatitude', 
+        'eventID', 'locality', 'temperature_C', 'DepthInMeters', 'decimalLatitude', 
         'decimalLongitude', 'sea_water_salinity', 'oxygen_concentration_mgL', 
         'sea_water_velocity', 'eventDate'
     ]
@@ -69,10 +69,76 @@ def clean_ocean_data(df):
     # --- Apply Validation Rules (Made Less Strict) ---
     if 'eventID' in clean_df.columns:
         clean_df['eventID'] = clean_df['eventID'].astype(str)
-        # More flexible eventID validation - allow any alphanumeric format
-        clean_df['eventID'] = clean_df['eventID'].where(
-            clean_df['eventID'].str.len() > 0, 
-            'RECORD_' + clean_df.index.astype(str)
+        
+        # Fix invalid eventIDs - handle "0", "nan", empty strings, etc.
+        invalid_mask = (
+            (clean_df['eventID'].str.len() == 0) |
+            (clean_df['eventID'] == '0') |
+            (clean_df['eventID'] == 'nan') |
+            (clean_df['eventID'].isna()) |
+            (clean_df['eventID'].str.strip() == '')
+        )
+        
+        # Generate proper eventIDs for invalid ones
+        clean_df.loc[invalid_mask, 'eventID'] = 'OCEAN_' + (clean_df.index + 1).astype(str)
+
+    # Generate locality from coordinates if locality column doesn't exist or is empty
+    if 'locality' not in clean_df.columns:
+        clean_df['locality'] = None
+    
+    # Fill missing localities with approximate location based on coordinates
+    if 'decimalLatitude' in clean_df.columns and 'decimalLongitude' in clean_df.columns:
+        def get_approximate_locality(lat, lon):
+            """Approximate Indian coastal localities based on coordinates"""
+            if pd.isna(lat) or pd.isna(lon):
+                return "Unknown"
+            
+            # Indian coastal regions approximate coordinates
+            if 18.9 <= lat <= 19.1 and 72.8 <= lon <= 73.0:
+                return "Mumbai"
+            elif 15.2 <= lat <= 15.6 and 73.7 <= lon <= 74.2:
+                return "Goa"
+            elif 9.9 <= lat <= 10.0 and 76.2 <= lon <= 76.3:
+                return "Kochi"
+            elif 12.8 <= lat <= 13.0 and 74.7 <= lon <= 74.9:
+                return "Mangalore"
+            elif 13.0 <= lat <= 13.1 and 80.2 <= lon <= 80.3:
+                return "Chennai"
+            elif 17.6 <= lat <= 17.8 and 83.2 <= lon <= 83.4:
+                return "Vizag"
+            elif 19.8 <= lat <= 20.0 and 85.8 <= lon <= 86.0:
+                return "Paradip"
+            elif 22.5 <= lat <= 22.7 and 88.3 <= lon <= 88.4:
+                return "Kolkata"
+            elif 19.8 <= lat <= 20.0 and 86.7 <= lon <= 86.9:
+                return "Puri"
+            elif 11.3 <= lat <= 11.5 and 92.7 <= lon <= 92.9:
+                return "Port Blair (Andaman)"
+            elif 8.2 <= lat <= 8.4 and 76.1 <= lon <= 76.3:
+                return "Tuticorin"
+            elif 21.6 <= lat <= 21.8 and 69.6 <= lon <= 69.8:
+                return "Veraval"
+            elif 14.8 <= lat <= 15.0 and 74.0 <= lon <= 74.2:
+                return "Karwar"
+            elif 20.4 <= lat <= 20.6 and 72.8 <= lon <= 73.0:
+                return "Daman"
+            # Bay of Bengal region
+            elif 8.0 <= lat <= 22.0 and 80.0 <= lon <= 95.0:
+                return "Bay of Bengal"
+            # Arabian Sea region
+            elif 8.0 <= lat <= 24.0 and 68.0 <= lon <= 78.0:
+                return "Arabian Sea"
+            # Indian Ocean region
+            elif -10.0 <= lat <= 15.0 and 65.0 <= lon <= 100.0:
+                return "Indian Ocean"
+            else:
+                return f"Coordinates_{lat:.1f}_{lon:.1f}"
+        
+        # Apply locality detection only where locality is missing
+        locality_mask = clean_df['locality'].isna() | (clean_df['locality'] == '') | (clean_df['locality'] == 'nan')
+        clean_df.loc[locality_mask, 'locality'] = clean_df.loc[locality_mask].apply(
+            lambda row: get_approximate_locality(row.get('decimalLatitude'), row.get('decimalLongitude')), 
+            axis=1
         )
 
     if 'temperature_C' in clean_df.columns:

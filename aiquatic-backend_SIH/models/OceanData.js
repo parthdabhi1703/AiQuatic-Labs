@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const oceanDataSchema = new mongoose.Schema({
   eventID: { type: String, required: true }, // Keep this required as we generate it
+  locality: { type: String, required: false, default: null }, // Added locality field
   temperature_C: { type: Number, required: false, default: null },
   DepthInMeters: { type: Number, required: false, default: null },
   decimalLatitude: { type: Number, required: false, default: null },

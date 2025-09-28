@@ -671,4 +671,200 @@
 
   window.addEventListener('resize', handleResize);
 
+  // === Ocean Monitoring Stations Map ===
+  let oceanMap = null;
+  let stationMarkers = [];
+  let currentLayer = 'all';
+
+  // Initialize the map
+  function initOceanMap() {
+    const mapElement = document.getElementById('oceanMap');
+    if (!mapElement) return;
+
+    // Initialize map centered on Indian Ocean
+    oceanMap = L.map('oceanMap').setView([15.0, 80.0], 6);
+
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(oceanMap);
+
+    // Indian Ocean monitoring stations data
+    const monitoringStations = [
+      {
+        name: "Mumbai Coastal Station",
+        lat: 19.0760,
+        lng: 72.8777,
+        species: "Mackerel",
+        temperature: "28.5°C",
+        salinity: "35 PSU",
+        type: "coastal"
+      },
+      {
+        name: "Goa Marine Observatory", 
+        lat: 15.2993,
+        lng: 74.1240,
+        species: "Pomfret",
+        temperature: "29.2°C", 
+        salinity: "34 PSU",
+        type: "coastal"
+      },
+      {
+        name: "Chennai Bay Station",
+        lat: 13.0827,
+        lng: 80.2707,
+        species: "Sardine",
+        temperature: "27.8°C",
+        salinity: "33 PSU", 
+        type: "bay"
+      },
+      {
+        name: "Kochi Monitoring Point",
+        lat: 9.9312,
+        lng: 76.2673,
+        species: "Tuna",
+        temperature: "30.1°C",
+        salinity: "35 PSU",
+        type: "coastal"
+      },
+      {
+        name: "Vizag Deep Sea Station",
+        lat: 17.6868,
+        lng: 83.2185,
+        species: "Barracuda",
+        temperature: "26.4°C",
+        salinity: "36 PSU",
+        type: "deep_sea"
+      },
+      {
+        name: "Bay of Bengal Monitoring Station",
+        lat: 16.5,
+        lng: 88.0,
+        species: "Mackerel", 
+        temperature: "27.1°C",
+        salinity: "35 PSU",
+        type: "deep_sea"
+      },
+      {
+        name: "Andaman Sea Observatory",
+        lat: 11.7401,
+        lng: 92.6586,
+        species: "Snapper",
+        temperature: "29.8°C",
+        salinity: "34 PSU",
+        type: "island"
+      },
+      {
+        name: "Kolkata Port Station",
+        lat: 22.5726,
+        lng: 88.3639,
+        species: "Hilsa",
+        temperature: "25.9°C",
+        salinity: "32 PSU",
+        type: "port"
+      },
+      {
+        name: "Mangalore Coastal Point",
+        lat: 12.9141,
+        lng: 74.8560,
+        species: "Kingfish",
+        temperature: "28.7°C", 
+        salinity: "34 PSU",
+        type: "coastal"
+      },
+      {
+        name: "Paradip Marine Station",
+        lat: 20.2648,
+        lng: 86.6249,
+        species: "Pomfret",
+        temperature: "26.8°C",
+        salinity: "35 PSU",
+        type: "port"
+      }
+    ];
+
+    // Add markers for each station
+    monitoringStations.forEach(station => {
+      const marker = L.marker([station.lat, station.lng])
+        .addTo(oceanMap)
+        .bindPopup(`
+          <div class="station-info">
+            <h4>${station.name}</h4>
+            <div class="species">🐟 Species: ${station.species}</div>
+            <div class="temp">🌡️ Temperature: ${station.temperature}</div>
+            <div class="salinity">🌊 Salinity: ${station.salinity}</div>
+          </div>
+        `, {
+          className: 'custom-popup'
+        });
+
+      // Store marker with station data for filtering
+      marker.stationData = station;
+      stationMarkers.push(marker);
+    });
+
+    // Add custom control for legend
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function(map) {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <div style="background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h4 style="margin: 0 0 8px 0; color: #1e293b;">Station Types</h4>
+          <div><span style="color: #3b82f6;">🔵</span> Coastal Stations</div>
+          <div><span style="color: #10b981;">🟢</span> Deep Sea Stations</div> 
+          <div><span style="color: #f59e0b;">🟡</span> Port Stations</div>
+        </div>
+      `;
+      return div;
+    };
+    legend.addTo(oceanMap);
+  }
+
+  // Toggle map layers based on button clicks
+  window.toggleMapLayer = function(layer) {
+    if (!oceanMap || !stationMarkers) return;
+    
+    currentLayer = layer;
+    
+    // Update button active states
+    document.querySelectorAll('.map-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.closest('.map-btn').classList.add('active');
+
+    // Show/hide markers based on layer
+    stationMarkers.forEach(marker => {
+      const station = marker.stationData;
+      let showMarker = false;
+
+      switch(layer) {
+        case 'temperature':
+          showMarker = parseFloat(station.temperature) > 28;
+          break;
+        case 'salinity': 
+          showMarker = parseFloat(station.salinity) > 34;
+          break;
+        case 'all':
+        default:
+          showMarker = true;
+          break;
+      }
+
+      if (showMarker) {
+        marker.addTo(oceanMap);
+      } else {
+        oceanMap.removeLayer(marker);
+      }
+    });
+  };
+
+  // Initialize map when page loads
+  if (document.getElementById('oceanMap')) {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Delay initialization to ensure Leaflet is loaded
+      setTimeout(initOceanMap, 500);
+    });
+  }
+
 })();
