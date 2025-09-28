@@ -79,18 +79,26 @@ def clean_ocean_data(df):
             (clean_df['eventID'].str.strip() == '')
         )
         
-        # Generate proper eventIDs for invalid ones
-        clean_df.loc[invalid_mask, 'eventID'] = 'OCEAN_' + (clean_df.index + 1).astype(str)
+        # Generate proper eventIDs for invalid ones using a safer approach
+        for idx in clean_df[invalid_mask].index:
+            clean_df.loc[idx, 'eventID'] = f'OCEAN_{idx + 1}'
 
     # Generate locality from coordinates if locality column doesn't exist or is empty
     if 'locality' not in clean_df.columns:
-        clean_df['locality'] = None
+        clean_df['locality'] = pd.Series([None] * len(clean_df), index=clean_df.index)
     
     # Fill missing localities with approximate location based on coordinates
     if 'decimalLatitude' in clean_df.columns and 'decimalLongitude' in clean_df.columns:
         def get_approximate_locality(lat, lon):
             """Approximate Indian coastal localities based on coordinates"""
-            if pd.isna(lat) or pd.isna(lon):
+            try:
+                if pd.isna(lat) or pd.isna(lon) or lat is None or lon is None:
+                    return "Unknown"
+                
+                # Convert to float to ensure numeric comparison
+                lat = float(lat)
+                lon = float(lon)
+            except (ValueError, TypeError):
                 return "Unknown"
             
             # Indian coastal regions approximate coordinates
@@ -135,11 +143,20 @@ def clean_ocean_data(df):
                 return f"Coordinates_{lat:.1f}_{lon:.1f}"
         
         # Apply locality detection only where locality is missing
-        locality_mask = clean_df['locality'].isna() | (clean_df['locality'] == '') | (clean_df['locality'] == 'nan')
-        clean_df.loc[locality_mask, 'locality'] = clean_df.loc[locality_mask].apply(
-            lambda row: get_approximate_locality(row.get('decimalLatitude'), row.get('decimalLongitude')), 
-            axis=1
-        )
+        try:
+            locality_mask = clean_df['locality'].isna() | (clean_df['locality'] == '') | (clean_df['locality'] == 'nan')
+            
+            # Use a safer approach to apply locality detection
+            for idx in clean_df[locality_mask].index:
+                try:
+                    lat = clean_df.loc[idx, 'decimalLatitude'] if 'decimalLatitude' in clean_df.columns else None
+                    lon = clean_df.loc[idx, 'decimalLongitude'] if 'decimalLongitude' in clean_df.columns else None
+                    clean_df.loc[idx, 'locality'] = get_approximate_locality(lat, lon)
+                except Exception:
+                    clean_df.loc[idx, 'locality'] = "Unknown"
+        except Exception:
+            # If locality processing fails, set all to Unknown
+            clean_df['locality'] = "Unknown"
 
     if 'temperature_C' in clean_df.columns:
         clean_df['temperature_C'] = pd.to_numeric(clean_df['temperature_C'], errors="coerce")
