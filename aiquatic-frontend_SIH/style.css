@@ -964,6 +964,96 @@ body {
   text-align: center;
 }
 
+/* ===== EXPORT BUTTON STYLES ===== */
+.visualization-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.export-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chart-header h5 {
+  margin: 0;
+  color: #374151;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.chart-export-btn {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  transition: all 0.3s ease;
+}
+
+.chart-export-btn:hover {
+  background: rgba(5, 150, 105, 0.2);
+  border-color: rgba(5, 150, 105, 0.5);
+  transform: translateY(-1px);
+}
+
+.chart-export-btn:active {
+  transform: translateY(0);
+}
+
+/* Modal Export Button Styles */
+.modal-charts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.modal-charts-header .export-btn {
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+}
+
 /* 
   The canvas element itself needs NO specific styling. 
   Chart.js will handle its dimensions automatically because its parent 
@@ -986,6 +1076,29 @@ body {
   .visualization-box .chart-container {
     padding: 1rem;
     height: 350px;
+  }
+
+  /* Export button responsive styles */
+  .visualization-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .export-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  .chart-export-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .modal-charts-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 /* ================================== */
@@ -1232,7 +1345,7 @@ body {
   background: #ffffff;
   border-radius: 12px;
   padding: 1.5rem;
-  padding-bottom: 5rem;
+  padding-bottom: 4.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
   height: 400px;

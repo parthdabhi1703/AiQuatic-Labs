@@ -278,17 +278,54 @@ document.addEventListener("DOMContentLoaded", () => {
     visualizationBox.className = "visualization-box has-data";
     visualizationBox.innerHTML = `
       <div class="visualization-container">
-        <h4 class="visualization-title">
-          <i class="fas fa-chart-area"></i> Instant Data Preview
-        </h4>
+        <div class="visualization-header">
+          <h4 class="visualization-title">
+            <i class="fas fa-chart-area"></i> Instant Data Preview
+          </h4>
+          <button class="export-btn" onclick="exportAllCharts('fish')" title="Export All Charts">
+            <i class="fas fa-download"></i> Export Charts
+          </button>
+        </div>
         <p class="visualization-subtitle">
           Previewing <strong style="color:#059669;">${fishData.length} records</strong> from your uploaded file
         </p>
         <div class="charts-grid">
-          <div class="chart-container"><h5><i class="fas fa-sitemap"></i> Family Distribution</h5><canvas id="familyChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5><canvas id="taxonomyChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-chart-bar"></i> Population Quantities</h5><canvas id="populationChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5><canvas id="diversityChart"></canvas></div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-sitemap"></i> Family Distribution</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('familyChart', 'Fish_Family_Distribution')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="familyChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('taxonomyChart', 'Fish_Taxonomic_Groups')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="taxonomyChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-chart-bar"></i> Population Quantities</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('populationChart', 'Fish_Population_Quantities')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="populationChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('diversityChart', 'Fish_Organism_Diversity')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="diversityChart"></canvas>
+          </div>
         </div>
       </div>`;
 
@@ -460,17 +497,54 @@ document.addEventListener("DOMContentLoaded", () => {
     visualizationBox.className = "visualization-box has-data";
     visualizationBox.innerHTML = `
       <div class="visualization-container">
-        <h4 class="visualization-title">
-          <i class="fas fa-chart-area"></i> Instant Data Preview
-        </h4>
+        <div class="visualization-header">
+          <h4 class="visualization-title">
+            <i class="fas fa-chart-area"></i> Instant Data Preview
+          </h4>
+          <button class="export-btn" onclick="exportAllCharts('ocean')" title="Export All Charts">
+            <i class="fas fa-download"></i> Export Charts
+          </button>
+        </div>
         <p class="visualization-subtitle">
           Previewing <strong style="color:#059669;">${oceanData.length} records</strong> from your uploaded file
         </p>
         <div class="charts-grid">
-          <div class="chart-container"><h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5><canvas id="tempChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5><canvas id="salinityChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-arrows-alt-v"></i> Depth Distribution (m)</h5><canvas id="depthChart"></canvas></div>
-          <div class="chart-container"><h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5><canvas id="tempDepthChart"></canvas></div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('tempChart', 'Ocean_Temperature_Distribution')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="tempChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('salinityChart', 'Ocean_Salinity_Levels')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="salinityChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-arrows-alt-v"></i> Depth Distribution (m)</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('depthChart', 'Ocean_Depth_Distribution')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="depthChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <div class="chart-header">
+              <h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5>
+              <button class="chart-export-btn" onclick="exportSingleChart('tempDepthChart', 'Ocean_Temperature_vs_Depth')" title="Export Chart">
+                <i class="fas fa-download"></i>
+              </button>
+            </div>
+            <canvas id="tempDepthChart"></canvas>
+          </div>
         </div>
       </div>`;
     const getFieldValue = (record, fieldNames) => {
@@ -672,40 +746,83 @@ document.addEventListener("DOMContentLoaded", () => {
               Showing <strong style="color:#059669;">${data.length} records</strong> 
               from ${upload.originalFilename} (${upload.dataType} data)
             </p>
+            <button class="export-btn" onclick="exportAllModalCharts('${upload.dataType}')" title="Export All Charts">
+              <i class="fas fa-download"></i> Export All Charts
+            </button>
           </div>
           <div class="modal-charts-grid">
             ${isFishData ? `
               <div class="modal-chart-container">
-                <h5><i class="fas fa-sitemap"></i> Family Distribution</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-sitemap"></i> Family Distribution</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalFamilyChart', 'Modal_Fish_Family_Distribution')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalFamilyChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTaxonomyChart', 'Modal_Fish_Taxonomic_Groups')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalTaxonomyChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-chart-bar"></i> Population Quantities</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-chart-bar"></i> Population Quantities</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalPopulationChart', 'Modal_Fish_Population_Quantities')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalPopulationChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalDiversityChart', 'Modal_Fish_Organism_Diversity')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalDiversityChart"></canvas>
               </div>
             ` : `
               <div class="modal-chart-container">
-                <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempChart', 'Modal_Ocean_Temperature_Distribution')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalTempChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-tint"></i> Salinity Levels (PSU)</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Salinity_Levels')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalSalinityChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-arrows-alt-v"></i> Depth Distribution (m)</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-arrows-alt-v"></i> Depth Distribution (m)</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalDepthChart', 'Modal_Ocean_Depth_Distribution')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalDepthChart"></canvas>
               </div>
               <div class="modal-chart-container">
-                <h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5>
+                <div class="chart-header">
+                  <h5><i class="fas fa-project-diagram"></i> Temperature vs Depth</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempDepthChart', 'Modal_Ocean_Temperature_vs_Depth')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
                 <canvas id="modalTempDepthChart"></canvas>
               </div>
             `}
@@ -1003,6 +1120,65 @@ document.addEventListener("DOMContentLoaded", () => {
     modalCharts.forEach((chart) => chart.destroy());
     modalCharts = [];
   }
+  
+  // --- Export Functions ---
+  window.exportSingleChart = function(chartId, filename) {
+    const canvas = document.getElementById(chartId);
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `${filename}_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  window.exportAllCharts = function(dataType) {
+    const timestamp = new Date().toISOString().split('T')[0];
+    if (dataType === 'fish') {
+      const chartIds = ['familyChart', 'taxonomyChart', 'populationChart', 'diversityChart'];
+      const chartNames = ['Fish_Family_Distribution', 'Fish_Taxonomic_Groups', 'Fish_Population_Quantities', 'Fish_Organism_Diversity'];
+      
+      chartIds.forEach((id, index) => {
+        setTimeout(() => {
+          exportSingleChart(id, chartNames[index]);
+        }, index * 500); // Stagger downloads to avoid browser blocking
+      });
+    } else if (dataType === 'ocean') {
+      const chartIds = ['tempChart', 'salinityChart', 'depthChart', 'tempDepthChart'];
+      const chartNames = ['Ocean_Temperature_Distribution', 'Ocean_Salinity_Levels', 'Ocean_Depth_Distribution', 'Ocean_Temperature_vs_Depth'];
+      
+      chartIds.forEach((id, index) => {
+        setTimeout(() => {
+          exportSingleChart(id, chartNames[index]);
+        }, index * 500); // Stagger downloads to avoid browser blocking
+      });
+    }
+  };
+
+  window.exportAllModalCharts = function(dataType) {
+    const timestamp = new Date().toISOString().split('T')[0];
+    if (dataType === 'fish') {
+      const chartIds = ['modalFamilyChart', 'modalTaxonomyChart', 'modalPopulationChart', 'modalDiversityChart'];
+      const chartNames = ['Modal_Fish_Family_Distribution', 'Modal_Fish_Taxonomic_Groups', 'Modal_Fish_Population_Quantities', 'Modal_Fish_Organism_Diversity'];
+      
+      chartIds.forEach((id, index) => {
+        setTimeout(() => {
+          exportSingleChart(id, chartNames[index]);
+        }, index * 500); // Stagger downloads to avoid browser blocking
+      });
+    } else if (dataType === 'ocean') {
+      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalDepthChart', 'modalTempDepthChart'];
+      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Levels', 'Modal_Ocean_Depth_Distribution', 'Modal_Ocean_Temperature_vs_Depth'];
+      
+      chartIds.forEach((id, index) => {
+        setTimeout(() => {
+          exportSingleChart(id, chartNames[index]);
+        }, index * 500); // Stagger downloads to avoid browser blocking
+      });
+    }
+  };
   
   // Close modal when clicking outside
   window.addEventListener('click', (event) => {
