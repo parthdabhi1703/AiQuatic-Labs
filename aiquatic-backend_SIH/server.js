@@ -112,7 +112,10 @@ const upload = multer({
       cb(new Error('File type not allowed. Please upload CSV files.'));
     }
   },
-  limits: { fileSize: 10 * 1024 * 1024 }
+  limits: { 
+    fileSize: 50 * 1024 * 1024,  // Increased to 50MB
+    fieldSize: 10 * 1024 * 1024  // 10MB for other form fields
+  }
 });
 
 // Configure CORS for production
@@ -172,18 +175,41 @@ const runPythonCleaner = (filePath, dataType) => {
   return new Promise((resolve, reject) => {
     // Try python3 first, then python for compatibility
     const pythonCmd = process.env.NODE_ENV === 'production' ? 'python3' : 'python';
-    const pythonProcess = spawn(pythonCmd, ['./clean_and_export.py', filePath, dataType]);
+    const pythonProcess = spawn(pythonCmd, ['./clean_and_export.py', filePath, dataType], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 50 * 1024 * 1024  // 50MB buffer for large datasets
+    });
+    
     let result = '', error = '';
-    pythonProcess.stdout.on('data', (data) => { result += data.toString(); });
-    pythonProcess.stderr.on('data', (data) => { error += data.toString(); });
+    
+    pythonProcess.stdout.on('data', (data) => { 
+      result += data.toString(); 
+    });
+    
+    pythonProcess.stderr.on('data', (data) => { 
+      error += data.toString(); 
+    });
+    
     pythonProcess.on('close', (code) => {
       if (code !== 0) return reject(new Error(`Data cleaning failed: ${error}`));
-      try { resolve(JSON.parse(result)); }
-      catch (e) { reject(new Error('Failed to parse cleaned data from Python.')); }
+      try { 
+        const parsed = JSON.parse(result);
+        resolve(parsed);
+      }
+      catch (e) { 
+        reject(new Error(`Failed to parse cleaned data: ${e.message}. Raw output: ${result.substring(0, 500)}`)); 
+      }
     });
+    
     pythonProcess.on('error', (err) => {
       reject(new Error(`Failed to start Python process: ${err.message}`));
     });
+    
+    // Add timeout to prevent hanging processes
+    setTimeout(() => {
+      pythonProcess.kill('SIGTERM');
+      reject(new Error('Python cleaning process timeout (60s)'));
+    }, 60000);
   });
 };
 
@@ -225,7 +251,7 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
     let finalCount = 0;
     
     if (dataType === 'ocean') {
-      // Ocean data filtering
+      // Ocean data filtering - OPTIMIZED
       dataToInsert = cleanedData.filter(row => {
         if (!row.eventID) return false; // Must have eventID
         
@@ -237,7 +263,11 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
       finalCount = dataToInsert.length;
       if (finalCount > 0) {
         try {
-          await OceanData.insertMany(dataToInsert);
+          // Use bulk insert with optimized options for better performance
+          await OceanData.insertMany(dataToInsert, {
+            ordered: false,     // Continue on individual document errors
+            rawResult: false    // Don't return full result object for speed
+          });
           console.log(`${finalCount} ocean records saved to MongoDB.`);
         } catch (insertError) {
           console.error('Ocean data MongoDB insertion error:', insertError);
@@ -245,7 +275,7 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
         }
       }
     } else if (dataType === 'fish') {
-      // Fish data filtering  
+      // Fish data filtering - OPTIMIZED
       dataToInsert = cleanedData.filter(row => {
         if (!row.eventID) return false; // Must have eventID
         
@@ -257,7 +287,11 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
       finalCount = dataToInsert.length;
       if (finalCount > 0) {
         try {
-          await FishData.insertMany(dataToInsert);
+          // Use bulk insert with optimized options for better performance
+          await FishData.insertMany(dataToInsert, {
+            ordered: false,     // Continue on individual document errors
+            rawResult: false    // Don't return full result object for speed
+          });
           console.log(`${finalCount} fish records saved to MongoDB.`);
         } catch (insertError) {
           console.error('Fish data MongoDB insertion error:', insertError);
