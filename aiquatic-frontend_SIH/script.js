@@ -751,14 +751,28 @@ document.addEventListener("DOMContentLoaded", () => {
         "rgba(45, 212, 191, 1)"      // Cyan
       ];
       
-      // Sort localities by average depth and take top 30
-      const sortedLocalities = Object.entries(localityDepthMap)
+      // Take top 30 rows of data (by order of appearance, not by depth values)
+      const top30Localities = {};
+      let localityCount = 0;
+      
+      // Process localities in order of first appearance in the dataset
+      for (const record of oceanData) {
+        if (localityCount >= 30) break;
+        
+        const locality = record.locality || record.Locality || "Unknown";
+        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (!top30Localities[locality] && depth !== null) {
+          top30Localities[locality] = localityDepthMap[locality];
+          localityCount++;
+        }
+      }
+      
+      const sortedLocalities = Object.entries(top30Localities)
         .map(([locality, data]) => ({
           locality,
           avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
-        }))
-        .sort((a, b) => b.avgDepth - a.avgDepth)
-        .slice(0, 30); // Limit to top 30
+        }));
 
       sortedLocalities.forEach(item => {
         localityLabels.push(item.locality);
@@ -903,16 +917,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const avgTemperatures = [];
       const avgSalinities = [];
       
-      // Process and sort localities, then take top 30
-      const processedData = Object.entries(localityDataMap)
+      // Take top 30 rows of data (by order of appearance, not by temperature values)
+      const top30LocalityData = {};
+      let localityCount = 0;
+      
+      // Process localities in order of first appearance in the dataset
+      for (const record of oceanData) {
+        if (localityCount >= 30) break;
+        
+        const locality = record.locality || record.Locality || "Unknown";
+        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
+        
+        if (!top30LocalityData[locality] && (temperature !== null || salinity !== null)) {
+          top30LocalityData[locality] = localityDataMap[locality];
+          localityCount++;
+        }
+      }
+      
+      const processedData = Object.entries(top30LocalityData)
         .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
         .map(([locality, data]) => ({
           locality,
           avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
           avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
-        }))
-        .sort((a, b) => b.avgTemp - a.avgTemp) // Sort by temperature
-        .slice(0, 30); // Limit to top 30
+        }));
 
       processedData.forEach(item => {
         localities.push(item.locality);
@@ -1040,6 +1069,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const temp = getFieldValue(d, [
             "Temperature (C)",
             "temperature_C",
+            "Temperature_C",
             "Temperature",
             "temp",
             "temperature"
@@ -1861,15 +1891,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       
-      const processedData = Object.entries(localityDataMap)
+      // Take top 30 rows of data (by order of appearance, not by temperature values)
+      const top30LocalityData = {};
+      let localityCount = 0;
+      
+      // Process localities in order of first appearance in the dataset
+      for (const record of data) {
+        if (localityCount >= 30) break;
+        
+        const locality = record.locality || record.Locality || "Unknown";
+        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
+        
+        if (!top30LocalityData[locality] && (temperature !== null || salinity !== null)) {
+          top30LocalityData[locality] = localityDataMap[locality];
+          localityCount++;
+        }
+      }
+      
+      const processedData = Object.entries(top30LocalityData)
         .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
         .map(([locality, data]) => ({
           locality,
           avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
           avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
-        }))
-        .sort((a, b) => b.avgTemp - a.avgTemp)
-        .slice(0, 30);
+        }));
 
       if (processedData.length > 0) {
         const localities = processedData.map(item => item.locality);
