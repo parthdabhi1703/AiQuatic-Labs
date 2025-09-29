@@ -1884,12 +1884,14 @@ function initializePreviewMap(data, dataType) {
           }
         }
 
-        // Create custom marker icon (same as dashboard)
-        const customIcon = L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
+        // Use standard Leaflet marker icon
+        const customIcon = L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
         });
 
         // Create popup content based on data type (same style as dashboard)
