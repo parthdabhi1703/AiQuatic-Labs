@@ -877,7 +877,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       oceanData.forEach((record) => {
         const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
         const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
         
         if (!localityDataMap[locality]) {
@@ -1646,7 +1646,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tempCtx = document.getElementById("modalTempChart");
     if (tempCtx && data.length > 0) {
       const temperatures = data
-        .map((d) => getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]))
+        .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
         .filter((t) => t !== null);
 
       if (temperatures.length > 0) {
@@ -1840,7 +1840,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       data.forEach((record) => {
         const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
         const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
         
         if (!localityDataMap[locality]) {
@@ -2156,7 +2156,7 @@ function initializeModalMap(data, dataType) {
             `;
           } else {
             const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
-            const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
+            const temperature = getFieldValue(record, ['Temperature_C', 'Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
             const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
             const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
             const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
@@ -2293,7 +2293,7 @@ function initializePreviewMap(data, dataType) {
           `;
         } else {
           const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
-          const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
+          const temperature = getFieldValue(record, ['Temperature_C', 'Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
           const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
           const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
           const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
