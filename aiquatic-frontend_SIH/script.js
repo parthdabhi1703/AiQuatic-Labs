@@ -1265,8 +1265,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-tint"></i> Salinity Distribution</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Salinity_Distribution')" title="Export Chart">
+                  <h5><i class="fas fa-map-marker-alt"></i> Average Depth by Locality</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Average_Depth_by_Locality')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
@@ -1355,7 +1355,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let modalCharts = [];
   
   function renderModalFishCharts(data) {
-    console.log('renderModalFishCharts called with data:', data?.length, 'records');
     destroyModalCharts();
     
     const getFieldValue = (record, fieldNames) => {
@@ -1663,7 +1662,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   function renderModalOceanCharts(data) {
-    console.log('renderModalOceanCharts called with data:', data?.length, 'records');
     destroyModalCharts();
     
     const getFieldValue = (record, fieldNames) => {
@@ -1678,7 +1676,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 1. Temperature Distribution (Bar Chart)
     const tempCtx = document.getElementById("modalTempChart");
-    console.log('Temperature chart context:', tempCtx, 'Data length:', data.length);
     if (tempCtx && data.length > 0) {
       const temperatures = data
         .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
@@ -1781,87 +1778,139 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 2. Salinity Distribution (Bar Chart)
+    // 2. Average Depth by Locality (Bar Chart)
     const salinityCtx = document.getElementById("modalSalinityChart");
-    console.log('Salinity chart context:', salinityCtx, 'Data length:', data.length);
     if (salinityCtx && data.length > 0) {
-      const salinities = data
-        .map((d) => getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]))
-        .filter((s) => s !== null);
-
-      if (salinities.length > 0) {
-        const ranges = [
-          { label: "0-20 PSU", min: 0, max: 20, count: 0 },
-          { label: "20-25 PSU", min: 20, max: 25, count: 0 },
-          { label: "25-30 PSU", min: 25, max: 30, count: 0 },
-          { label: "30-35 PSU", min: 30, max: 35, count: 0 },
-          { label: "35-40 PSU", min: 35, max: 40, count: 0 },
-          { label: "40+ PSU", min: 40, max: 50, count: 0 },
-        ];
-
-        salinities.forEach((salinity) => {
-          for (let range of ranges) {
-            if (salinity >= range.min && salinity < range.max) {
-              range.count++;
-              break;
-            }
+      // Calculate average depth by locality
+      const localityDepthMap = {};
+      
+      data.forEach((record) => {
+        const locality = record.locality || record.Locality || "Unknown";
+        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (depth !== null) {
+          if (!localityDepthMap[locality]) {
+            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
           }
-        });
+          localityDepthMap[locality].totalDepth += depth;
+          localityDepthMap[locality].count += 1;
+        }
+      });
+      
+      // Take top 30 rows of data (by order of appearance, not by depth values)
+      const top30Localities = {};
+      let localityCount = 0;
+      
+      // Process localities in order of first appearance in the dataset
+      for (const record of data) {
+        if (localityCount >= 30) break;
+        
+        const locality = record.locality || record.Locality || "Unknown";
+        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+        
+        if (!top30Localities[locality] && depth !== null) {
+          top30Localities[locality] = localityDepthMap[locality];
+          localityCount++;
+        }
+      }
+      
+      const sortedLocalities = Object.entries(top30Localities)
+        .map(([locality, data]) => ({
+          locality,
+          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
+        }));
 
-        const labels = ranges.map((r) => r.label);
-        const counts = ranges.map((r) => r.count);
+      if (sortedLocalities.length > 0) {
+        const localityLabels = sortedLocalities.map(item => item.locality);
+        const averageDepths = sortedLocalities.map(item => item.avgDepth);
+        
+        // Modern gradient colors
+        const gradientColors = [
+          "rgba(99, 102, 241, 0.8)", "rgba(59, 130, 246, 0.8)", "rgba(16, 185, 129, 0.8)",
+          "rgba(245, 158, 11, 0.8)", "rgba(239, 68, 68, 0.8)", "rgba(139, 92, 246, 0.8)",
+          "rgba(236, 72, 153, 0.8)", "rgba(20, 184, 166, 0.8)", "rgba(251, 146, 60, 0.8)",
+          "rgba(34, 197, 94, 0.8)", "rgba(168, 85, 247, 0.8)", "rgba(14, 165, 233, 0.8)",
+          "rgba(132, 204, 22, 0.8)", "rgba(251, 113, 133, 0.8)", "rgba(45, 212, 191, 0.8)"
+        ];
+        
+        const borderColors = gradientColors.map(color => color.replace('0.8', '1'));
 
         modalCharts.push(
           new Chart(salinityCtx, {
             type: "bar",
             data: {
-              labels: labels,
+              labels: localityLabels,
               datasets: [
                 {
-                  label: "Salinity Distribution",
-                  data: counts,
-                  backgroundColor: "rgba(16, 185, 129, 0.8)",
-                  borderColor: "rgba(16, 185, 129, 1)",
-                  borderWidth: 2,
-                  borderRadius: 6,
+                  label: "Average Depth",
+                  data: averageDepths,
+                  backgroundColor: gradientColors.slice(0, localityLabels.length),
+                  borderColor: borderColors.slice(0, localityLabels.length),
+                  borderWidth: 3,
+                  borderRadius: 8,
+                  borderSkipped: false,
                 },
               ],
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              interaction: {
+                intersect: false,
+                mode: 'index',
+              },
               plugins: {
                 legend: { display: false },
                 tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
                   callbacks: {
-                    title: function (context) {
-                      return `🧂 ${context[0].label}`;
+                    title: function(context) {
+                      return `📍 ${context[0].label}`;
                     },
-                    label: function (context) {
-                      return `Count: ${context.parsed.y} records`;
-                    },
-                  },
-                },
+                    label: function(context) {
+                      return `🌊 Average Depth: ${context.parsed.y}m`;
+                    }
+                  }
+                }
               },
-              scales: {
+              scales: { 
                 x: {
-                  title: {
-                    display: true,
-                    text: "Salinity Range (PSU)",
-                    font: { weight: "bold" },
+                  title: { 
+                    display: true, 
+                    text: "🏙️ Locality",
+                    font: { size: 14, weight: 'bold' },
+                    color: '#374151'
                   },
-                  ticks: { font: { weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: "Number of Records",
-                    font: { weight: "bold" },
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    color: '#6B7280',
+                    font: { size: 12, weight: '500' }
                   },
-                  ticks: { font: { weight: "bold" } },
+                  grid: { display: false }
                 },
+                y: { 
+                  beginAtZero: true, 
+                  title: { 
+                    display: true, 
+                    text: "🌊 Average Depth (meters)",
+                    font: { size: 14, weight: 'bold' },
+                    color: '#374151'
+                  },
+                  ticks: {
+                    color: '#6B7280',
+                    font: { size: 11 },
+                    callback: function(value) {
+                      return value + 'm';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(156, 163, 175, 0.2)',
+                    borderDash: [5, 5]
+                  }
+                } 
               },
             },
           })
@@ -2133,7 +2182,6 @@ window.addEventListener('click', (event) => {
 let modalMap = null;
 
 function initializeModalMap(data, dataType) {
-    console.log('initializeModalMap called with data:', data?.length, 'records, type:', dataType);
     // Destroy existing modal map if it exists
     if (modalMap) {
       modalMap.remove();
@@ -2143,11 +2191,7 @@ function initializeModalMap(data, dataType) {
     // Wait for the DOM element to be ready
     setTimeout(() => {
       const mapContainer = document.getElementById('modalMap');
-      console.log('Modal map container found:', mapContainer);
-      if (!mapContainer) {
-        console.error('Modal map container not found!');
-        return;
-      }
+      if (!mapContainer) return;
 
       // Initialize modal map
       modalMap = L.map('modalMap').setView([20.0, 77.0], 5); // Center on India
@@ -2443,7 +2487,7 @@ window.exportSingleChart = function(chartId, filename) {
       });
     } else if (dataType === 'ocean') {
       const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalDepthChart', 'modalTempSalinityScatterChart'];
-      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Distribution', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
+      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Average_Depth_by_Locality', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
       
       chartIds.forEach((id, index) => {
         setTimeout(() => {
