@@ -352,6 +352,14 @@ document.addEventListener("DOMContentLoaded", () => {
             <canvas id="diversityChart"></canvas>
           </div>
         </div>
+        
+        <!-- Interactive Location Map -->
+        <div class="preview-map-container">
+          <div class="preview-map-header">
+            <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
+          </div>
+          <div id="previewMap" class="preview-map"></div>
+        </div>
       </div>`;
 
     const getFieldValue = (record, fieldNames) => {
@@ -514,6 +522,9 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       );
     }
+
+    // Initialize the preview map and add data points
+    initializePreviewMap(fishData, 'fish');
   }
 
   // --- Ocean Data Visualization Function ---
@@ -570,6 +581,14 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <canvas id="tempSalinityScatterChart"></canvas>
           </div>
+        </div>
+        
+        <!-- Interactive Location Map -->
+        <div class="preview-map-container">
+          <div class="preview-map-header">
+            <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
+          </div>
+          <div id="previewMap" class="preview-map"></div>
         </div>
       </div>`;
     const getFieldValue = (record, fieldNames) => {
@@ -1106,6 +1125,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
     }
+
+    // Initialize the preview map and add data points
+    initializePreviewMap(oceanData, 'ocean');
   }
   
   // --- Modal Functions (Global scope) ---
@@ -1768,6 +1790,135 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// --- Preview Map Functions ---
+let previewMap = null;
+
+function initializePreviewMap(data, dataType) {
+  // Destroy existing map if it exists
+  if (previewMap) {
+    previewMap.remove();
+    previewMap = null;
+  }
+
+  // Wait for the DOM element to be ready
+  setTimeout(() => {
+    const mapContainer = document.getElementById('previewMap');
+    if (!mapContainer) return;
+
+    // Initialize map
+    previewMap = L.map('previewMap').setView([20.0, 77.0], 5); // Center on India
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(previewMap);
+
+    // Function to get field value with multiple possible field names
+    const getFieldValue = (record, fieldNames) => {
+      for (let field of fieldNames) {
+        if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
+          return record[field];
+        }
+      }
+      return null;
+    };
+
+    // Add markers for each data point
+    let bounds = [];
+    
+    data.forEach((record, index) => {
+      // Get latitude and longitude
+      const lat = parseFloat(
+        getFieldValue(record, ['decimalLatitude', 'latitude', 'lat', 'Latitude'])
+      );
+      const lng = parseFloat(
+        getFieldValue(record, ['decimalLongitude', 'longitude', 'lng', 'lon', 'Longitude'])
+      );
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        bounds.push([lat, lng]);
+
+        // Create marker with different colors based on data type
+        let markerColor = dataType === 'fish' ? '#3b82f6' : '#10b981';
+        
+        // For ocean data, color code by temperature
+        if (dataType === 'ocean') {
+          const temp = parseFloat(
+            getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp'])
+          );
+          if (!isNaN(temp)) {
+            if (temp > 25) markerColor = '#ef4444'; // Red for high temp
+            else if (temp < 15) markerColor = '#3b82f6'; // Blue for low temp
+          }
+        }
+
+        // Create custom icon
+        const customIcon = L.divIcon({
+          className: 'custom-preview-marker',
+          html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        // Create popup content based on data type
+        let popupContent = '';
+        if (dataType === 'fish') {
+          const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown';
+          const family = getFieldValue(record, ['Family', 'family']) || 'Unknown';
+          const quantity = getFieldValue(record, ['organismQuantity', 'organism_quantity', 'quantity', 'count']) || 'N/A';
+          
+          popupContent = `
+            <div class="preview-map-popup">
+              <h4>🐠 ${species}</h4>
+              <div class="data-row"><i class="fas fa-sitemap"></i> Family: ${family}</div>
+              <div class="data-row"><i class="fas fa-hashtag"></i> Quantity: ${quantity}</div>
+              <div class="data-row"><i class="fas fa-map-marker-alt"></i> Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</div>
+            </div>
+          `;
+        } else {
+          const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown';
+          const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']) || 'N/A';
+          const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']) || 'N/A';
+          const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']) || 'N/A';
+          
+          popupContent = `
+            <div class="preview-map-popup">
+              <h4>🌊 ${locality}</h4>
+              <div class="data-row"><i class="fas fa-thermometer-half"></i> Temperature: ${temperature}°C</div>
+              <div class="data-row"><i class="fas fa-tint"></i> Salinity: ${salinity} PSU</div>
+              <div class="data-row"><i class="fas fa-ruler-vertical"></i> Depth: ${depth}m</div>
+              <div class="data-row"><i class="fas fa-map-marker-alt"></i> Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</div>
+            </div>
+          `;
+        }
+
+        // Add marker to map
+        L.marker([lat, lng], { icon: customIcon })
+          .addTo(previewMap)
+          .bindPopup(popupContent, {
+            className: 'custom-popup'
+          });
+      }
+    });
+
+    // Fit map to show all data points
+    if (bounds.length > 0) {
+      previewMap.fitBounds(bounds, { 
+        padding: [20, 20],
+        maxZoom: 10
+      });
+    }
+
+    // Invalidate size to ensure proper rendering
+    setTimeout(() => {
+      if (previewMap) {
+        previewMap.invalidateSize();
+      }
+    }, 100);
+  }, 500);
+}
 
 // --- Export Functions (Global scope) ---
 window.exportSingleChart = function(chartId, filename) {
