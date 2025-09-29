@@ -1302,17 +1302,19 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       
-      // Render charts in modal based on data type
-      if (isFishData) {
-        renderModalFishCharts(data);
-      } else {
-        renderModalOceanCharts(data);
-      }
-      
-      // Initialize modal map
+      // Render charts in modal based on data type after DOM is ready
       setTimeout(() => {
-        initializeModalMap(data, upload.dataType);
-      }, 500);
+        if (isFishData) {
+          renderModalFishCharts(data);
+        } else {
+          renderModalOceanCharts(data);
+        }
+        
+        // Initialize modal map after charts are rendered
+        setTimeout(() => {
+          initializeModalMap(data, upload.dataType);
+        }, 300);
+      }, 100);
       
     } catch (error) {
       console.error('Modal error:', error);
@@ -1353,6 +1355,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let modalCharts = [];
   
   function renderModalFishCharts(data) {
+    console.log('renderModalFishCharts called with data:', data?.length, 'records');
     destroyModalCharts();
     
     const getFieldValue = (record, fieldNames) => {
@@ -1660,6 +1663,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   function renderModalOceanCharts(data) {
+    console.log('renderModalOceanCharts called with data:', data?.length, 'records');
     destroyModalCharts();
     
     const getFieldValue = (record, fieldNames) => {
@@ -1674,6 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 1. Temperature Distribution (Bar Chart)
     const tempCtx = document.getElementById("modalTempChart");
+    console.log('Temperature chart context:', tempCtx, 'Data length:', data.length);
     if (tempCtx && data.length > 0) {
       const temperatures = data
         .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
@@ -1778,6 +1783,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2. Salinity Distribution (Bar Chart)
     const salinityCtx = document.getElementById("modalSalinityChart");
+    console.log('Salinity chart context:', salinityCtx, 'Data length:', data.length);
     if (salinityCtx && data.length > 0) {
       const salinities = data
         .map((d) => getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]))
@@ -2127,6 +2133,7 @@ window.addEventListener('click', (event) => {
 let modalMap = null;
 
 function initializeModalMap(data, dataType) {
+    console.log('initializeModalMap called with data:', data?.length, 'records, type:', dataType);
     // Destroy existing modal map if it exists
     if (modalMap) {
       modalMap.remove();
@@ -2136,7 +2143,11 @@ function initializeModalMap(data, dataType) {
     // Wait for the DOM element to be ready
     setTimeout(() => {
       const mapContainer = document.getElementById('modalMap');
-      if (!mapContainer) return;
+      console.log('Modal map container found:', mapContainer);
+      if (!mapContainer) {
+        console.error('Modal map container not found!');
+        return;
+      }
 
       // Initialize modal map
       modalMap = L.map('modalMap').setView([20.0, 77.0], 5); // Center on India
@@ -2431,8 +2442,8 @@ window.exportSingleChart = function(chartId, filename) {
         }, index * 500); // Stagger downloads to avoid browser blocking
       });
     } else if (dataType === 'ocean') {
-      const chartIds = ['modalTempDistChart', 'modalDepthChart', 'modalTempSalinityChart', 'modalTempSalinityScatterChart'];
-      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Average_Depth_by_Locality', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
+      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalDepthChart', 'modalTempSalinityScatterChart'];
+      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Salinity_Distribution', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
       
       chartIds.forEach((id, index) => {
         setTimeout(() => {
