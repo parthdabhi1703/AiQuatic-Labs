@@ -1,3 +1,6 @@
+// Global array to hold modal chart instances (must be global so destroyModalCharts can access it)
+window.modalCharts = window.modalCharts || [];
+
 document.addEventListener("DOMContentLoaded", () => {
   // --- [ELEMENT SELECTION] ---
   const dropAreaEl = document.getElementById("dropArea");
@@ -1366,8 +1369,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
   
-  // Modal chart instances
-  let modalCharts = [];
+  // Modal chart instances (use the global array to avoid scope issues that prevented rendering)
+  // NOTE: Previously this was a locally scoped `let modalCharts = []` which caused
+  // destroyModalCharts() (defined outside this closure) to throw a ReferenceError.
+  // That runtime error aborted chart creation, leaving the modal blank.
+  // We now always reference the global window.modalCharts.
+  const modalCharts = window.modalCharts;
   
   function renderModalFishCharts(data) {
     console.log('Rendering modal fish charts with data:', data.length);
@@ -2233,8 +2240,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- Modal Chart Functions ---
 function destroyModalCharts() {
-  modalCharts.forEach((chart) => chart.destroy());
-  modalCharts = [];
+  if (!window.modalCharts) {
+    window.modalCharts = [];
+    return;
+  }
+  window.modalCharts.forEach((chart) => {
+    try { chart.destroy(); } catch (e) { /* ignore */ }
+  });
+  window.modalCharts.length = 0; // clear in-place so references inside render functions stay valid
 }
 
 // Close modal when clicking outside
