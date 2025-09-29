@@ -2158,17 +2158,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
-
   
   function destroyModalCharts() {
     modalCharts.forEach((chart) => chart.destroy());
     modalCharts = [];
   }
 
-  // --- Modal Map Functions ---
-  let modalMap = null;
+  // Close modal when clicking outside
+  window.addEventListener('click', (event) => {
+    const modal = document.getElementById('viewModal');
+    if (event.target === modal) {
+      closeViewModal();
+    }
+  });
+});
 
-  function initializeModalMap(data, dataType) {
+// --- Modal Map Functions ---
+let modalMap = null;
+
+function initializeModalMap(data, dataType) {
     // Destroy existing modal map if it exists
     if (modalMap) {
       modalMap.remove();
@@ -2287,15 +2295,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 100);
     }, 200);
   }
-
-  // Close modal when clicking outside
-  window.addEventListener('click', (event) => {
-    const modal = document.getElementById('viewModal');
-    if (event.target === modal) {
-      closeViewModal();
-    }
-  });
-});
 
 // --- Preview Map Functions ---
 let previewMap = null;
