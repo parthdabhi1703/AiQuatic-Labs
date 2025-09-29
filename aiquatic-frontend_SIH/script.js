@@ -1,2577 +1,1124 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // --- [ELEMENT SELECTION] ---
-  const dropAreaEl = document.getElementById("dropArea");
-  const fileEl = document.getElementById("fileUpload");
-  const browseBtnEl = document.getElementById("browseBtn");
-  const detailsEl = document.getElementById("fileDetails");
-  const uploadBtnEl = document.getElementById("uploadBtn");
-  const msgEl = document.getElementById("uploadMsg");
-  const visualizationBox = document.getElementById("visualizationBox");
-  const recentUploadsEl = document.getElementById("recentUploads");
-  const recentUploadsPlaceholder = document.getElementById(
-    "recentUploadsPlaceholder"
-  );
+// ===== GLOBAL VARIABLES =====
+let uploadedFiles = [];
+let currentFileData = null;
+let currentDataType = 'ocean';
+let previewCharts = {};
+let modalCharts = {};
 
-  let selectedFile = null;
-  let activeCharts = [];
-  
-  // Load recent uploads on page load
-  loadRecentUploads();
+// Sample data for demonstration (the "old 4 data" mentioned)
+const sampleData = [
+  {
+    id: 'sample_ocean_data_1',
+    name: 'Pacific Ocean Temperature Survey 2024.csv',
+    type: 'ocean',
+    size: '145 KB',
+    uploadDate: '2024-01-15',
+    downloadUrl: '#',
+    data: generateSampleOceanData(50)
+  },
+  {
+    id: 'sample_fish_data_1', 
+    name: 'Marine Species Census 2024.csv',
+    type: 'fish',
+    size: '89 KB',
+    uploadDate: '2024-01-10',
+    downloadUrl: '#',
+    data: generateSampleFishData(30)
+  },
+  {
+    id: 'sample_edna_data_1',
+    name: 'eDNA Analysis Results Q1 2024.csv', 
+    type: 'edna',
+    size: '67 KB',
+    uploadDate: '2024-01-08',
+    downloadUrl: '#',
+    data: generateSampleEDNAData(40)
+  },
+  {
+    id: 'sample_otolith_data_1',
+    name: 'Otolith Microstructure Study.csv',
+    type: 'otolith', 
+    size: '123 KB',
+    uploadDate: '2024-01-05',
+    downloadUrl: '#',
+    data: generateSampleOtolithData(35)
+  }
+];
 
-  // --- Data Type Change Handler ---
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', function() {
+  initializeEventListeners();
+  initializeSampleData();
+  updateVisualizationContent();
+});
+
+function initializeEventListeners() {
+  // File upload elements
+  const dropArea = document.getElementById('dropArea');
+  const fileUpload = document.getElementById('fileUpload');
+  const browseBtn = document.getElementById('browseBtn');
+  const uploadBtn = document.getElementById('uploadBtn');
+
+  // Data type radio buttons
   const dataTypeRadios = document.querySelectorAll('input[name="dataType"]');
+  
+  // Modal close
+  const viewModal = document.getElementById('viewModal');
+
+  // Event listeners
+  if (dropArea) {
+    dropArea.addEventListener('dragover', handleDragOver);
+    dropArea.addEventListener('dragleave', handleDragLeave);
+    dropArea.addEventListener('drop', handleDrop);
+    dropArea.addEventListener('click', () => fileUpload?.click());
+  }
+
+  if (fileUpload) {
+    fileUpload.addEventListener('change', handleFileSelect);
+  }
+
+  if (browseBtn) {
+    browseBtn.addEventListener('click', () => fileUpload?.click());
+  }
+
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', handleUpload);
+  }
+
   dataTypeRadios.forEach(radio => {
     radio.addEventListener('change', handleDataTypeChange);
   });
 
-  function handleDataTypeChange() {
-    const selectedDataType = document.querySelector('input[name="dataType"]:checked').value;
-    updateVisualizationContent(selectedDataType);
-  }
-
-  function updateVisualizationContent(dataType) {
-    const titleEl = document.getElementById('visualizationTitle');
-    const descriptionEl = document.getElementById('visualizationDescription');
-    const placeholderEl = document.getElementById('placeholderText');
-    const chartDescEl = document.getElementById('chartDescription');
-
-    switch(dataType) {
-      case 'fish':
-        if (titleEl) titleEl.innerHTML = '<i class="fas fa-chart-bar"></i> Fish Data Visualization';
-        if (descriptionEl) descriptionEl.textContent = 'Interactive charts showing Families Distribution, Population by Habitat (or Taxonomic group), Species Discovery Timeline and Conservation Status from your uploaded data.';
-        if (placeholderEl) placeholderEl.textContent = 'Upload a Fish Data file to see detailed visualizations';
-        if (chartDescEl) chartDescEl.textContent = 'Charts will show: Family distribution, Species by taxonomic groups, Population quantities, and Organism diversity';
-        break;
-      case 'ocean':
-      default:
-        if (titleEl) titleEl.innerHTML = '<i class="fas fa-chart-bar"></i> Ocean Data Visualization';
-        if (descriptionEl) descriptionEl.textContent = 'Interactive charts showing Temperature, Salinity distributions, geographic analysis, and temperature-salinity relationships from your uploaded data.';
-        if (placeholderEl) placeholderEl.textContent = 'Upload an Ocean Data file to see detailed visualizations';
-        if (chartDescEl) chartDescEl.textContent = 'Charts will show: Temperature trends, Salinity levels, Geographic temperature & salinity analysis, and Temperature-Salinity correlations';
-        break;
-    }
-  }
-
-  // --- File Selection & Instant Preview ---
-  const handleFileSelect = (file) => {
-    selectedFile = file;
-    showFileDetails(selectedFile);
-
-    if (file.type === "text/csv" || file.name.endsWith(".csv")) {
-      setVisualizationPlaceholder(
-        "Parsing your file for preview...",
-        "fas fa-spinner fa-spin"
-      );
-
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function (results) {
-          if (results.data && results.data.length > 0) {
-            const selectedDataType = document.querySelector('input[name="dataType"]:checked').value;
-            if (selectedDataType === 'fish') {
-              renderFishDataCharts(results.data);
-            } else {
-              renderOceanDataCharts(results.data);
-            }
-          } else {
-            setVisualizationPlaceholder(
-              "Could not find data in the CSV to preview.",
-              "fas fa-exclamation-circle"
-            );
-          }
-        },
-        error: function (error) {
-          setVisualizationPlaceholder(
-            "Could not parse the CSV file for preview.",
-            "fas fa-times-circle"
-          );
-        },
-      });
-    } else {
-      destroyCharts();
-      setVisualizationPlaceholder(
-        "Instant preview is only available for CSV files.",
-        "fas fa-info-circle"
-      );
-    }
-  };
-
-  if (browseBtnEl && fileEl) {
-    browseBtnEl.addEventListener("click", () => fileEl.click());
-    fileEl.addEventListener("change", () => {
-      if (fileEl.files.length > 0) {
-        handleFileSelect(fileEl.files[0]);
+  // Modal event listeners
+  if (viewModal) {
+    viewModal.addEventListener('click', function(e) {
+      if (e.target === viewModal) {
+        closeViewModal();
       }
     });
   }
 
-  if (dropAreaEl) {
-    dropAreaEl.addEventListener("dragover", (e) => e.preventDefault());
-    dropAreaEl.addEventListener("drop", (e) => {
-      e.preventDefault();
-      if (e.dataTransfer.files.length > 0) {
-        fileEl.files = e.dataTransfer.files;
-        handleFileSelect(e.dataTransfer.files[0]);
-      }
-    });
-  }
-
-  // --- Upload Button Logic ---
-  if (uploadBtnEl) {
-    uploadBtnEl.addEventListener("click", async () => {
-      if (!selectedFile) {
-        msgEl.innerHTML = `<span style="color:#ef4444;">❌ Please select a file first.</span>`;
-        return;
-      }
-      uploadBtnEl.disabled = true;
-      uploadBtnEl.textContent = "Processing...";
-      
-      // Enhanced progress indicators
-      const progressSteps = [
-        "🔍 Analyzing file format...",
-        "🧹 Cleaning and validating data...",
-        "🗺️ Detecting geographic locations...",
-        "💾 Saving to database...",
-        "✨ Finalizing upload..."
-      ];
-      
-      let currentStep = 0;
-      msgEl.innerHTML = `<div style="color:#3b82f6;font-weight:500;">${progressSteps[currentStep]}</div>`;
-      
-      // Progress animation
-      const progressInterval = setInterval(() => {
-        currentStep = (currentStep + 1) % progressSteps.length;
-        msgEl.innerHTML = `<div style="color:#3b82f6;font-weight:500;">${progressSteps[currentStep]}</div>`;
-      }, 2000);
-
-      const formData = new FormData();
-      formData.append("dataset", selectedFile);
-      formData.append(
-        "dataType",
-        document.querySelector('input[name="dataType"]:checked').value
-      );
-
-      try {
-        const startTime = Date.now();
-        const res = await fetch(`${window.API_CONFIG.BASE_URL}/upload`, {
-          method: "POST",
-          body: formData,
-        });
-        
-        clearInterval(progressInterval);
-        const data = await res.json();
-        const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        if (res.ok) {
-          msgEl.innerHTML = `<div style="color:#10b981;font-weight:500;">
-            ✅ ${data.message}<br>
-            <small style="color:#6b7280;">Processed in ${processingTime}s</small>
-          </div>`;
-          addRecentUpload(data);
-          resetUploadUI();
-        } else {
-          // [BUG FIX] Do NOT clear the charts on error. Just show the message.
-          msgEl.innerHTML = `<span style="color:#ef4444;">❌ Error: ${
-            data.message || "An unknown error occurred."
-          }</span>`;
-        }
-      } catch (err) {
-        clearInterval(progressInterval);
-        // [BUG FIX] Do NOT clear the charts on error. Just show the message.
-        msgEl.innerHTML = `<span style="color:#ef4444;">❌ Upload failed. Cannot connect to the server.</span>`;
-      } finally {
-        uploadBtnEl.disabled = false;
-        uploadBtnEl.textContent = "Upload";
-      }
-    });
-  }
-
-  // --- Load recent uploads from server ---
-  async function loadRecentUploads() {
-    try {
-      const response = await fetch(`${window.API_CONFIG.BASE_URL}/recent-uploads`);
-      const recentUploads = await response.json();
-      
-      if (recentUploads.length === 0) {
-        if (recentUploadsPlaceholder) {
-          recentUploadsPlaceholder.style.display = "block";
-        }
-        return;
-      }
-      
-      if (recentUploadsPlaceholder) {
-        recentUploadsPlaceholder.style.display = "none";
-      }
-      
-      // Clear existing uploads
-      const existingCards = recentUploadsEl.querySelectorAll('.file-card');
-      existingCards.forEach(card => card.remove());
-      
-      // Add each upload (limit to 5 most recent files)
-      recentUploads.slice(0, 5).forEach(upload => {
-        addRecentUploadCard(upload);
-      });
-      
-    } catch (error) {
-      console.error("Error loading recent uploads:", error);
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeViewModal();
     }
-  }
-
-  // --- Function to add the cleaned file card ---
-  function addRecentUploadCard(upload) {
-    if (!recentUploadsEl) return;
-
-    const fileCard = document.createElement("div");
-    fileCard.className = "file-card";
-    
-    const uploadDate = new Date(upload.uploadDate).toLocaleDateString();
-    
-    // Generate download filename with _Cleaned suffix
-    const originalName = upload.originalFilename;
-    const downloadFilename = originalName.replace(/\.(csv|CSV)$/i, '_Cleaned.csv');
-
-    fileCard.innerHTML = `
-      <div class="file-icon"><i class="fas fa-file-csv"></i></div>
-      <div class="file-details">
-          <p class="file-name">${upload.originalFilename} (Cleaned)</p>
-          <p class="file-meta">Uploaded: ${uploadDate} | Processed: ${upload.recordsProcessed} records | Saved: ${upload.recordsSaved} records</p>
-      </div>
-      <div class="file-actions">
-          <button class="action-btn view-btn" onclick="openViewModal('${upload._id}')">
-              <i class="fas fa-eye"></i> View
-          </button>
-          <a href="${window.API_CONFIG.BASE_URL}/download/${upload.cleanedFilename}" 
-             class="action-btn download-btn" 
-             download="${downloadFilename}">
-              <i class="fas fa-download"></i> Download
-          </a>
-      </div>
-    `;
-    recentUploadsEl.appendChild(fileCard);
-  }
-  
-  // --- Function to add new upload after successful upload ---
-  function addRecentUpload(data) {
-    if (!recentUploadsEl) return;
-    if (recentUploadsPlaceholder)
-      recentUploadsPlaceholder.style.display = "none";
-
-    // Create upload object in the same format as from server
-    const upload = {
-      _id: data.uploadId,
-      originalFilename: data.originalFilename,
-      cleanedFilename: data.cleanedFilename,
-      recordsProcessed: data.recordsProcessed,
-      recordsSaved: data.recordsSaved,
-      uploadDate: new Date().toISOString()
-    };
-
-    addRecentUploadCard(upload);
-  }
-
-  // --- Helper Functions ---
-  function showFileDetails(file) {
-    if (!file) return;
-    detailsEl.textContent = `Selected: ${file.name} (${(
-      file.size / 1024
-    ).toFixed(2)} KB)`;
-    browseBtnEl.hidden = true;
-    uploadBtnEl.hidden = false;
-    msgEl.textContent = "";
-  }
-  function resetUploadUI() {
-    uploadBtnEl.hidden = true;
-    browseBtnEl.hidden = false;
-    fileEl.value = "";
-    selectedFile = null;
-    detailsEl.textContent = "";
-  }
-  function setVisualizationPlaceholder(message, iconClass) {
-    destroyCharts(); // This is the correct place to destroy charts
-    visualizationBox.className = "visualization-box";
-    visualizationBox.innerHTML = `<div class="placeholder"><i class="${iconClass}"></i><p>${message}</p></div>`;
-  }
-  function destroyCharts() {
-    activeCharts.forEach((chart) => chart.destroy());
-    activeCharts = [];
-  }
-
-  // --- Fish Data Visualization Function ---
-  function renderFishDataCharts(fishData) {
-    destroyCharts();
-    visualizationBox.className = "visualization-box has-data";
-    visualizationBox.innerHTML = `
-      <div class="visualization-container">
-        <div class="visualization-header">
-          <h4 class="visualization-title">
-            <i class="fas fa-chart-area"></i> Instant Data Preview
-          </h4>
-          <button class="export-btn" onclick="exportAllCharts('fish')" title="Export All Charts">
-            <i class="fas fa-download"></i> Export Charts
-          </button>
-        </div>
-        <p class="visualization-subtitle">
-          Previewing <strong style="color:#059669;">${fishData.length} records</strong> from your uploaded file
-        </p>
-        <div class="charts-grid">
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-sitemap"></i> Family Distribution</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('familyChart', 'Fish_Family_Distribution')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="familyChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('taxonomyChart', 'Fish_Taxonomic_Groups')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="taxonomyChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-chart-bar"></i> Population Quantities</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('populationChart', 'Fish_Population_Quantities')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="populationChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('diversityChart', 'Fish_Organism_Diversity')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="diversityChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Interactive Location Map -->
-        <div class="preview-map-container">
-          <div class="preview-map-header">
-            <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
-          </div>
-          <div id="previewMap" class="preview-map"></div>
-        </div>
-      </div>`;
-
-    const getFieldValue = (record, fieldNames) => {
-      for (let field of fieldNames) {
-        if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
-          return record[field];
-        }
-      }
-      return null;
-    };
-
-    // Extract fish data fields
-    const families = fishData
-      .map((d) => getFieldValue(d, ["Family", "family"]))
-      .filter((f) => f !== null);
-    
-    const classes = fishData
-      .map((d) => getFieldValue(d, ["Class", "class"]))
-      .filter((c) => c !== null);
-
-    const quantities = fishData
-      .map((d) => {
-        const qty = getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"]);
-        return qty ? parseFloat(qty) : null;
-      })
-      .filter((q) => q !== null && !isNaN(q));
-
-    const species = fishData
-      .map((d) => getFieldValue(d, ["Species", "species", "scientificName", "scientific_name"]))
-      .filter((s) => s !== null);
-
-    // Family Distribution Chart
-    const familyCtx = document.getElementById("familyChart");
-    if (familyCtx && families.length > 0) {
-      const familyCounts = {};
-      families.forEach(family => {
-        familyCounts[family] = (familyCounts[family] || 0) + 1;
-      });
-      const topFamilies = Object.entries(familyCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 8);
-
-      activeCharts.push(
-        new Chart(familyCtx, {
-          type: "doughnut",
-          data: {
-            labels: topFamilies.map(([family]) => family),
-            datasets: [{
-              data: topFamilies.map(([, count]) => count),
-              backgroundColor: [
-                "#10b981", "#3b82f6", "#f59e0b", "#ef4444",
-                "#8b5cf6", "#06d6a0", "#f72585", "#4cc9f0"
-              ],
-              borderWidth: 2,
-              borderColor: "#ffffff"
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: "bottom" } }
-          }
-        })
-      );
-    }
-
-    // Taxonomic Groups Chart
-    const taxonomyCtx = document.getElementById("taxonomyChart");
-    if (taxonomyCtx && classes.length > 0) {
-      const classCounts = {};
-      classes.forEach(cls => {
-        classCounts[cls] = (classCounts[cls] || 0) + 1;
-      });
-      const labels = fishData.map((d, index) => d.eventID || `Record_${index + 1}`).slice(0, 10);
-
-      activeCharts.push(
-        new Chart(taxonomyCtx, {
-          type: "bar",
-          data: {
-            labels: Object.keys(classCounts).slice(0, 10),
-            datasets: [{
-              label: "Species Count by Class",
-              data: Object.values(classCounts).slice(0, 10),
-              backgroundColor: "rgba(59,130,246,0.7)",
-              borderColor: "#3b82f6",
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, title: { display: true, text: "Count" } } }
-          }
-        })
-      );
-    }
-
-    // Population Quantities Chart
-    const populationCtx = document.getElementById("populationChart");
-    if (populationCtx && quantities.length > 0) {
-      const labels = fishData
-        .filter((d, index) => quantities[index] !== undefined)
-        .map((d, index) => d.eventID || `Record_${index + 1}`)
-        .slice(0, 15);
-
-      activeCharts.push(
-        new Chart(populationCtx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Organism Quantity",
-              data: quantities.slice(0, 15),
-              borderColor: "#ef4444",
-              backgroundColor: "rgba(239,68,68,0.1)",
-              fill: true,
-              tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, title: { display: true, text: "Quantity" } } }
-          }
-        })
-      );
-    }
-
-    // Diversity Chart (Species Distribution)
-    const diversityCtx = document.getElementById("diversityChart");
-    if (diversityCtx && species.length > 0) {
-      const speciesCounts = {};
-      species.forEach(sp => {
-        speciesCounts[sp] = (speciesCounts[sp] || 0) + 1;
-      });
-      
-      const diversityData = fishData.slice(0, 50).map((d, index) => ({
-        x: index + 1,
-        y: getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"]) || 0
-      }));
-
-      activeCharts.push(
-        new Chart(diversityCtx, {
-          type: "scatter",
-          data: {
-            datasets: [{
-              label: "Organism Distribution",
-              data: diversityData,
-              backgroundColor: "rgba(139,92,246,0.7)"
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { type: "linear", position: "bottom", title: { display: true, text: "Record Number" } },
-              y: { title: { display: true, text: "Organism Quantity" } }
-            }
-          }
-        })
-      );
-    }
-
-    // Initialize the preview map and add data points
-    initializePreviewMap(fishData, 'fish');
-  }
-
-  // --- Ocean Data Visualization Function ---
-  function renderOceanDataCharts(oceanData) {
-    destroyCharts();
-    visualizationBox.className = "visualization-box has-data";
-    visualizationBox.innerHTML = `
-      <div class="visualization-container">
-        <div class="visualization-header">
-          <h4 class="visualization-title">
-            <i class="fas fa-chart-area"></i> Instant Data Preview
-          </h4>
-          <button class="export-btn" onclick="exportAllCharts('ocean')" title="Export All Charts">
-            <i class="fas fa-download"></i> Export Charts
-          </button>
-        </div>
-        <p class="visualization-subtitle">
-          Previewing <strong style="color:#059669;">${oceanData.length} records</strong> from your uploaded file
-        </p>
-        <div class="charts-grid">
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('tempChart', 'Ocean_Temperature_Distribution')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="tempChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-map-marker-alt"></i> Average Depth by Locality</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('salinityChart', 'Ocean_Average_Depth_by_Locality')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="salinityChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-chart-bar"></i> Average Temperature & Salinity by Locality</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('depthChart', 'Ocean_Avg_Temp_Salinity_by_Locality')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="depthChart"></canvas>
-          </div>
-          <div class="chart-container">
-            <div class="chart-header">
-              <h5><i class="fas fa-thermometer-half"></i> Temperature vs Salinity</h5>
-              <button class="chart-export-btn" onclick="exportSingleChart('tempSalinityScatterChart', 'Ocean_Temperature_vs_Salinity')" title="Export Chart">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-            <canvas id="tempSalinityScatterChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Interactive Location Map -->
-        <div class="preview-map-container">
-          <div class="preview-map-header">
-            <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
-          </div>
-          <div id="previewMap" class="preview-map"></div>
-        </div>
-      </div>`;
-    const getFieldValue = (record, fieldNames) => {
-      for (let field of fieldNames) {
-        if (record[field] !== undefined && record[field] !== null) {
-          const value = parseFloat(record[field]);
-          if (!isNaN(value)) return value;
-        }
-      }
-      return null;
-    };
-    const temperatures = oceanData
-      .map((d) =>
-        getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"])
-      )
-      .filter((t) => t !== null);
-
-    const oxygenLevels = oceanData
-      .map((d) =>
-        getFieldValue(d, [
-          "Oxygen Concentration (mg/L)",
-          "oxygen_concentration_mgL",
-          "Dissolved O₂",
-          "oxygen",
-        ])
-      )
-      .filter((o) => o !== null);
-
-    const salinities = oceanData
-      .map((d) =>
-        getFieldValue(d, [
-          "Salinity(PSU)",
-          "sea_water_salinity",
-          "Salinity",
-          "psu",
-        ])
-      )
-      .filter((s) => s !== null);
-    const depths = oceanData
-      .map((d) =>
-        getFieldValue(d, ["Depth in meter", "DepthInMeters", "Depth", "depth"])
-      )
-      .filter((d) => d !== null);
-    const labels = oceanData
-      .map((d) => d.eventDate || d.eventID || "Unknown")
-      .slice(0, 30); // match Python top 30
-
-    const tempCtx = document.getElementById("tempChart");
-    if (tempCtx && temperatures.length > 0 && oxygenLevels.length > 0) {
-      activeCharts.push(
-        new Chart(tempCtx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Temperature (°C)",
-                data: temperatures.slice(0, 30),
-                borderColor: "rgba(231,107,243,1)", // pastel purple
-                backgroundColor: "rgba(231,107,243,0.2)",
-                fill: true,
-                tension: 0.4, // smooth curve (spline-like)
-                borderWidth: 3,
-                pointRadius: 4,
-              },
-              {
-                label: "Dissolved O₂ (mg/L)",
-                data: oxygenLevels.slice(0, 30),
-                borderColor: "rgba(0,176,246,1)", // pastel blue
-                backgroundColor: "rgba(0,176,246,0.2)",
-                fill: true,
-                tension: 0.4,
-                borderWidth: 3,
-                pointRadius: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              title: {
-                display: true,
-                text: "Temperature & Dissolved Oxygen (Top 30 Records)",
-              },
-              legend: {
-                display: true,
-                labels: { usePointStyle: true },
-              },
-            },
-            scales: {
-              x: {
-                title: { display: true, text: "Collection Date" },
-              },
-              y: {
-                title: { display: true, text: "Values" },
-                beginAtZero: false,
-              },
-            },
-          },
-        })
-      );
-    }
-    const salinityCtx = document.getElementById("salinityChart");
-    if (salinityCtx && oceanData.length > 0) {
-      // Calculate average depth by locality
-      const localityDepthMap = {};
-      
-      oceanData.forEach((record) => {
-        const locality = record.locality || record.Locality || "Unknown";
-        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
-        
-        if (depth !== null) {
-          if (!localityDepthMap[locality]) {
-            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
-          }
-          localityDepthMap[locality].totalDepth += depth;
-          localityDepthMap[locality].count += 1;
-        }
-      });
-      
-      // Calculate averages and prepare data
-      const localityLabels = [];
-      const averageDepths = [];
-      
-      // Modern gradient colors for a professional look
-      const gradientColors = [
-        "rgba(99, 102, 241, 0.8)",   // Indigo
-        "rgba(59, 130, 246, 0.8)",   // Blue  
-        "rgba(16, 185, 129, 0.8)",   // Emerald
-        "rgba(245, 158, 11, 0.8)",   // Amber
-        "rgba(239, 68, 68, 0.8)",    // Red
-        "rgba(139, 92, 246, 0.8)",   // Violet
-        "rgba(236, 72, 153, 0.8)",   // Pink
-        "rgba(20, 184, 166, 0.8)",   // Teal
-        "rgba(251, 146, 60, 0.8)",   // Orange
-        "rgba(34, 197, 94, 0.8)",    // Green
-        "rgba(168, 85, 247, 0.8)",   // Purple
-        "rgba(14, 165, 233, 0.8)",   // Sky
-        "rgba(132, 204, 22, 0.8)",   // Lime
-        "rgba(251, 113, 133, 0.8)",  // Rose
-        "rgba(45, 212, 191, 0.8)"    // Cyan
-      ];
-      
-      const borderColors = [
-        "rgba(99, 102, 241, 1)",     // Indigo
-        "rgba(59, 130, 246, 1)",     // Blue
-        "rgba(16, 185, 129, 1)",     // Emerald
-        "rgba(245, 158, 11, 1)",     // Amber
-        "rgba(239, 68, 68, 1)",      // Red
-        "rgba(139, 92, 246, 1)",     // Violet
-        "rgba(236, 72, 153, 1)",     // Pink
-        "rgba(20, 184, 166, 1)",     // Teal
-        "rgba(251, 146, 60, 1)",     // Orange
-        "rgba(34, 197, 94, 1)",      // Green
-        "rgba(168, 85, 247, 1)",     // Purple
-        "rgba(14, 165, 233, 1)",     // Sky
-        "rgba(132, 204, 22, 1)",     // Lime
-        "rgba(251, 113, 133, 1)",    // Rose
-        "rgba(45, 212, 191, 1)"      // Cyan
-      ];
-      
-      // Take top 30 rows of data (by order of appearance, not by depth values)
-      const top30Localities = {};
-      let localityCount = 0;
-      
-      // Process localities in order of first appearance in the dataset
-      for (const record of oceanData) {
-        if (localityCount >= 30) break;
-        
-        const locality = record.locality || record.Locality || "Unknown";
-        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
-        
-        if (!top30Localities[locality] && depth !== null) {
-          top30Localities[locality] = localityDepthMap[locality];
-          localityCount++;
-        }
-      }
-      
-      const sortedLocalities = Object.entries(top30Localities)
-        .map(([locality, data]) => ({
-          locality,
-          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
-        }));
-
-      sortedLocalities.forEach(item => {
-        localityLabels.push(item.locality);
-        averageDepths.push(item.avgDepth);
-      });
-      
-      if (localityLabels.length > 0) {
-        activeCharts.push(
-          new Chart(salinityCtx, {
-            type: "bar",
-            data: {
-              labels: localityLabels,
-              datasets: [
-                {
-                  label: "Average Depth",
-                  data: averageDepths,
-                  backgroundColor: gradientColors.slice(0, localityLabels.length),
-                  borderColor: borderColors.slice(0, localityLabels.length),
-                  borderWidth: 3,
-                  borderRadius: 8,
-                  borderSkipped: false,
-                  hoverBackgroundColor: gradientColors.slice(0, localityLabels.length).map(color => color.replace('0.8', '0.9')),
-                  hoverBorderColor: borderColors.slice(0, localityLabels.length),
-                  hoverBorderWidth: 4,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: {
-                intersect: false,
-                mode: 'index',
-              },
-              plugins: {
-                legend: {
-                  display: false // Hide legend for cleaner look like species count charts
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#fff',
-                  bodyColor: '#fff',
-                  borderColor: '#374151',
-                  borderWidth: 1,
-                  cornerRadius: 8,
-                  displayColors: true,
-                  callbacks: {
-                    title: function(context) {
-                      return `📍 ${context[0].label}`;
-                    },
-                    label: function(context) {
-                      return `🌊 Average Depth: ${context.parsed.y}m`;
-                    }
-                  }
-                }
-              },
-              scales: { 
-                x: {
-                  title: { 
-                    display: true, 
-                    text: "🏙️ Locality",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                    color: '#6B7280',
-                    font: {
-                      size: 12,
-                      weight: '500'
-                    }
-                  },
-                  grid: {
-                    display: false
-                  }
-                },
-                y: { 
-                  beginAtZero: true, 
-                  title: { 
-                    display: true, 
-                    text: "🌊 Average Depth (meters)",
-                    font: {
-                      size: 14,
-                      weight: 'bold'
-                    },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    color: '#6B7280',
-                    font: {
-                      size: 11
-                    },
-                    callback: function(value) {
-                      return value + 'm';
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(156, 163, 175, 0.2)',
-                    borderDash: [5, 5]
-                  }
-                } 
-              },
-            },
-          })
-        );
-      }
-    }
-    const depthCtx = document.getElementById("depthChart");
-    if (depthCtx && oceanData.length > 0) {
-      // Calculate average temperature and salinity by locality
-      const localityDataMap = {};
-      
-      oceanData.forEach((record) => {
-        const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
-        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-        
-        if (!localityDataMap[locality]) {
-          localityDataMap[locality] = { 
-            tempSum: 0, tempCount: 0, 
-            salinitySum: 0, salinityCount: 0 
-          };
-        }
-        
-        if (temperature !== null) {
-          localityDataMap[locality].tempSum += temperature;
-          localityDataMap[locality].tempCount += 1;
-        }
-        
-        if (salinity !== null) {
-          localityDataMap[locality].salinitySum += salinity;
-          localityDataMap[locality].salinityCount += 1;
-        }
-      });
-      
-      // Prepare chart data
-      const localities = [];
-      const avgTemperatures = [];
-      const avgSalinities = [];
-      
-      // Take top 30 rows of data (by order of appearance, not by temperature values)
-      const top30LocalityData = {};
-      let localityCount = 0;
-      
-      // Process localities in order of first appearance in the dataset
-      for (const record of oceanData) {
-        if (localityCount >= 30) break;
-        
-        const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
-        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-        
-        if (!top30LocalityData[locality] && (temperature !== null || salinity !== null)) {
-          top30LocalityData[locality] = localityDataMap[locality];
-          localityCount++;
-        }
-      }
-      
-      const processedData = Object.entries(top30LocalityData)
-        .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
-        .map(([locality, data]) => ({
-          locality,
-          avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
-          avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
-        }));
-
-      processedData.forEach(item => {
-        localities.push(item.locality);
-        avgTemperatures.push(item.avgTemp);
-        avgSalinities.push(item.avgSalinity);
-      });
-      
-      if (localities.length > 0) {
-        activeCharts.push(
-          new Chart(depthCtx, {
-            type: "bar",
-            data: {
-              labels: localities,
-              datasets: [
-                {
-                  label: "temperature_C",
-                  data: avgTemperatures,
-                  backgroundColor: "rgba(239, 68, 68, 0.7)",
-                  borderColor: "rgba(239, 68, 68, 1)",
-                  borderWidth: 2,
-                  borderRadius: 4,
-                  yAxisID: 'y'
-                },
-                {
-                  label: "Salinity",
-                  data: avgSalinities,
-                  backgroundColor: "rgba(59, 130, 246, 0.7)",
-                  borderColor: "rgba(59, 130, 246, 1)",
-                  borderWidth: 2,
-                  borderRadius: 4,
-                  yAxisID: 'y1'
-                }
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: {
-                intersect: false,
-                mode: 'index',
-              },
-              plugins: {
-                legend: {
-                  display: true,
-                  position: 'top'
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#fff',
-                  bodyColor: '#fff',
-                  borderColor: '#374151',
-                  borderWidth: 1,
-                  cornerRadius: 8,
-                  callbacks: {
-                    label: function(context) {
-                      const label = context.dataset.label;
-                      const value = context.parsed.y;
-                      if (label === 'temperature_C') {
-                        return `🌡️ Temperature: ${value}°C`;
-                      } else {
-                        return `🌊 Salinity: ${value} PSU`;
-                      }
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: "locality",
-                    font: { size: 12, weight: 'bold' },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                    color: '#6B7280',
-                    font: { size: 10 }
-                  },
-                  grid: { display: false }
-                },
-                y: {
-                  type: 'linear',
-                  display: true,
-                  position: 'left',
-                  title: {
-                    display: true,
-                    text: "Temperature (°C)",
-                    color: 'rgba(239, 68, 68, 1)',
-                    font: { size: 12, weight: 'bold' }
-                  },
-                  ticks: {
-                    color: 'rgba(239, 68, 68, 1)',
-                    font: { size: 10 }
-                  },
-                  grid: { color: 'rgba(156, 163, 175, 0.2)' }
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  title: {
-                    display: true,
-                    text: "Salinity (PSU)",
-                    color: 'rgba(59, 130, 246, 1)',
-                    font: { size: 12, weight: 'bold' }
-                  },
-                  ticks: {
-                    color: 'rgba(59, 130, 246, 1)',
-                    font: { size: 10 }
-                  },
-                  grid: { drawOnChartArea: false }
-                }
-              },
-            },
-          })
-        );
-      }
-    }
-    const tempSalinityScatterCtx = document.getElementById("tempSalinityScatterChart");
-    if (tempSalinityScatterCtx && oceanData.length > 0) {
-      const scatterData = oceanData
-        .map((d) => {
-          const temp = getFieldValue(d, [
-            "Temperature (C)",
-            "temperature_C",
-            "Temperature_C",
-            "Temperature",
-            "temp",
-            "temperature"
-          ]);
-          const salinity = getFieldValue(d, [
-            "Salinity",
-            "sea_water_salinity", 
-            "Salinity (ppt)",
-            "Salinity (psu)",
-            "salinity",
-            "sal"
-          ]);
-          
-          return {
-            x: temp,
-            y: salinity,
-            // Color coding based on temperature for visual appeal
-            backgroundColor: temp !== null ? 
-              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
-              'rgba(99, 102, 241, 0.7)'
-          };
-        })
-        .filter((d) => d.x !== null && d.y !== null)
-        .slice(0, 150); // Show more points for better scatter visualization
-        
-      if (scatterData.length > 0) {
-        activeCharts.push(
-          new Chart(tempSalinityScatterCtx, {
-            type: "scatter",
-            data: {
-              datasets: [
-                {
-                  label: "Temperature vs Salinity",
-                  data: scatterData,
-                  backgroundColor: scatterData.map(d => d.backgroundColor),
-                  borderColor: 'rgba(59, 130, 246, 0.8)',
-                  borderWidth: 1,
-                  pointRadius: 6,
-                  pointHoverRadius: 8,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'top',
-                  labels: {
-                    font: { size: 12, weight: 'bold' },
-                    padding: 20,
-                    usePointStyle: true
-                  }
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  titleFont: { size: 14, weight: 'bold' },
-                  bodyFont: { size: 12 },
-                  padding: 12,
-                  cornerRadius: 8,
-                  callbacks: {
-                    label: function(context) {
-                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  type: "linear",
-                  position: "bottom",
-                  title: { 
-                    display: true, 
-                    text: "Temperature (°C)",
-                    font: { weight: 'bold' }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' }
-                  }
-                },
-                y: { 
-                  title: { 
-                    display: true, 
-                    text: "Salinity (ppt)",
-                    font: { weight: 'bold' }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' }
-                  }
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // Initialize the preview map and add data points
-    initializePreviewMap(oceanData, 'ocean');
-  }
-  
-  // --- Modal Functions (Global scope) ---
-  window.openViewModal = async function(uploadId) {
-    const modal = document.getElementById('viewModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-    
-    modal.style.display = 'flex';
-    modalBody.innerHTML = `
-      <div class="loading">
-        <i class="fas fa-spinner fa-spin"></i>
-        <p>Loading visualization...</p>
-      </div>
-    `;
-    
-    try {
-      const response = await fetch(`${window.API_CONFIG.BASE_URL}/recent-uploads/view/${uploadId}`);
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to load data');
-      }
-      
-      const { upload, data } = result;
-      modalTitle.textContent = `${upload.originalFilename} - Data Visualization`;
-      
-      // Create charts container with updated instant preview charts and map
-      const isFishData = upload.dataType === 'fish';
-      modalBody.innerHTML = `
-        <div class="modal-charts-container">
-          <div class="modal-charts-header">
-            <p class="modal-subtitle">
-              Showing <strong style="color:#059669;">${data.length} records</strong> 
-              from ${upload.originalFilename} (${upload.dataType} data)
-            </p>
-            <button class="export-btn" onclick="exportAllModalCharts('${upload.dataType}')" title="Export All Charts">
-              <i class="fas fa-download"></i> Export All Charts
-            </button>
-          </div>
-          <div class="modal-charts-grid">
-            ${isFishData ? `
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-sitemap"></i> Family Distribution</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalFamilyChart', 'Modal_Fish_Family_Distribution')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalFamilyChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-layer-group"></i> Species by Taxonomic Groups</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTaxonomyChart', 'Modal_Fish_Taxonomic_Groups')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalTaxonomyChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-chart-bar"></i> Population by Species</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalPopulationChart', 'Modal_Fish_Population_by_Species')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalPopulationChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-chart-scatter"></i> Family vs Quantity Distribution</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalDiversityChart', 'Modal_Fish_Family_Quantity_Distribution')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalDiversityChart"></canvas>
-              </div>
-            ` : `
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempChart', 'Modal_Ocean_Temperature_Distribution')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalTempChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-map-marker-alt"></i> Average Depth by Locality</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Average_Depth_by_Locality')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalSalinityChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Average Temperature & Salinity by Locality</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalDepthChart', 'Modal_Temperature_Salinity_by_Locality')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalDepthChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-chart-scatter"></i> Temperature vs Salinity Scatter</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempSalinityScatterChart', 'Modal_Ocean_Temperature_vs_Salinity')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalTempSalinityScatterChart"></canvas>
-              </div>
-            `}
-          </div>
-          <!-- Modal Leaflet Map Section -->
-          <div class="modal-map-section">
-            <div class="modal-map-header">
-              <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
-            </div>
-            <div id="modalMap" class="modal-map"></div>
-          </div>
-        </div>
-      `;
-      
-      // Ensure DOM is ready before rendering charts
-      const waitForCanvas = () => {
-        const testCanvas = document.getElementById(isFishData ? 'modalFamilyChart' : 'modalTempChart');
-        if (testCanvas && testCanvas.offsetWidth > 0 && testCanvas.offsetHeight > 0) {
-          // DOM is ready, render charts
-          try {
-            if (isFishData) {
-              renderModalFishCharts(data);
-            } else {
-              renderModalOceanCharts(data);
-            }
-            
-            // Initialize modal map after charts are rendered
-            setTimeout(() => {
-              initializeModalMap(data, upload.dataType);
-            }, 300);
-          } catch (error) {
-            console.error('Chart rendering failed:', error);
-          }
-        } else {
-          // Canvas not ready, wait and retry
-          console.log('Canvas not ready, retrying...');
-          setTimeout(waitForCanvas, 100);
-        }
-      };
-      
-      // Start checking for canvas readiness
-      setTimeout(waitForCanvas, 200);
-      
-    } catch (error) {
-      console.error('Modal error:', error);
-      modalBody.innerHTML = `
-        <div class="error">
-          <i class="fas fa-exclamation-triangle"></i>
-          <h4>Unable to Load Visualization</h4>
-          <p>This file may not be available for visualization. Possible reasons:</p>
-          <ul style="text-align: left; margin: 1rem 0;">
-            <li>File was uploaded before visualization feature</li>
-            <li>File may have been moved or deleted</li>
-            <li>Network connectivity issue</li>
-          </ul>
-          <p><strong>Solution:</strong> Try downloading the file instead, or re-upload the data for full visualization features.</p>
-          <div style="margin-top: 1rem;">
-            <button onclick="closeViewModal()" class="action-btn">Close</button>
-          </div>
-        </div>
-      `;
-    }
-  };
-  
-  window.closeViewModal = function() {
-    const modal = document.getElementById('viewModal');
-    modal.style.display = 'none';
-    
-    // Destroy modal charts
-    destroyModalCharts();
-    
-    // Destroy modal map
-    if (modalMap) {
-      modalMap.remove();
-      modalMap = null;
-    }
-  };
-  
-  // Modal chart instances
-  let modalCharts = [];
-  
-  function renderModalFishCharts(data) {
-    console.log('Rendering modal fish charts with data:', data.length);
-    destroyModalCharts();
-    
-    // Validate canvas dimensions
-    const validateCanvas = (canvasId) => {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) {
-        console.error(`Canvas ${canvasId} not found`);
-        return null;
-      }
-      if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
-        console.error(`Canvas ${canvasId} has zero dimensions`);
-        return null;
-      }
-      return canvas;
-    };
-    
-    const getFieldValue = (record, fieldNames) => {
-      for (let field of fieldNames) {
-        if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
-          return record[field];
-        }
-      }
-      return null;
-    };
-
-    // 1. Family Distribution (Doughnut Chart)
-    const familyCanvas = validateCanvas("modalFamilyChart");
-    if (familyCanvas && data.length > 0) {
-      const families = data
-        .map((d) => getFieldValue(d, ["Family", "family"]))
-        .filter((f) => f !== null);
-
-      if (families.length > 0) {
-        const familyCounts = {};
-        families.forEach((family) => {
-          familyCounts[family] = (familyCounts[family] || 0) + 1;
-        });
-
-        const topFamilies = Object.entries(familyCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 10);
-
-        const familyCtx = familyCanvas.getContext('2d');
-        console.log('Family context created:', !!familyCtx);
-        
-        modalCharts.push(
-          new Chart(familyCtx, {
-            type: "doughnut",
-            data: {
-              labels: topFamilies.map(([family]) => family),
-              datasets: [
-                {
-                  data: topFamilies.map(([, count]) => count),
-                  backgroundColor: [
-                    "#10b981", "#3b82f6", "#f59e0b", "#ef4444", 
-                    "#8b5cf6", "#06d6a0", "#f72585", "#4cc9f0",
-                    "#fb7185", "#34d399"
-                  ],
-                  borderWidth: 3,
-                  borderColor: "#ffffff",
-                  hoverBorderWidth: 4,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: "bottom",
-                  labels: {
-                    padding: 15,
-                    usePointStyle: true,
-                    font: { size: 12, weight: "500" },
-                  },
-                },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  titleColor: "#ffffff",
-                  bodyColor: "#ffffff",
-                  callbacks: {
-                    title: function (context) {
-                      return `🐟 ${context[0].label}`;
-                    },
-                    label: function (context) {
-                      const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                      const percentage = ((context.parsed / total) * 100).toFixed(1);
-                      return `Count: ${context.parsed} (${percentage}%)`;
-                    },
-                  },
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // 2. Species by Taxonomic Groups (Bar Chart)
-    const taxonomyCanvas = validateCanvas("modalTaxonomyChart");
-    if (taxonomyCanvas && data.length > 0) {
-      const classes = data
-        .map((d) => getFieldValue(d, ["Class", "class"]))
-        .filter((c) => c !== null);
-
-      if (classes.length > 0) {
-        const classCounts = {};
-        classes.forEach((cls) => {
-          classCounts[cls] = (classCounts[cls] || 0) + 1;
-        });
-
-        const taxonomyCtx = taxonomyCanvas.getContext('2d');
-        console.log('Taxonomy context created:', !!taxonomyCtx);
-        
-        modalCharts.push(
-          new Chart(taxonomyCtx, {
-            type: "bar",
-            data: {
-              labels: Object.keys(classCounts).slice(0, 15),
-              datasets: [
-                {
-                  label: "Species Count",
-                  data: Object.values(classCounts).slice(0, 15),
-                  backgroundColor: "rgba(59, 130, 246, 0.8)",
-                  borderColor: "rgba(59, 130, 246, 1)",
-                  borderWidth: 2,
-                  borderRadius: 6,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  callbacks: {
-                    title: function (context) {
-                      return `🏷️ ${context[0].label}`;
-                    },
-                    label: function (context) {
-                      return `Species Count: ${context.parsed.y}`;
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  title: { display: true, text: "Taxonomic Class", font: { weight: "bold" } },
-                  ticks: { maxRotation: 45, font: { weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: "Number of Species", font: { weight: "bold" } },
-                  ticks: { font: { weight: "bold" } },
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // 3. Population by Species (Bar Chart)
-    const populationCanvas = validateCanvas("modalPopulationChart");
-    if (populationCanvas && data.length > 0) {
-      const speciesData = {};
-      
-      data.forEach((d) => {
-        const species = getFieldValue(d, ["Species", "species", "scientificName", "scientific_name"]);
-        const quantity = parseFloat(
-          getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"])
-        ) || 1;
-        
-        if (species && !isNaN(quantity)) {
-          speciesData[species] = (speciesData[species] || 0) + quantity;
-        }
-      });
-
-      const topSpecies = Object.entries(speciesData)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 15);
-
-      if (topSpecies.length > 0) {
-        const populationCtx = populationCanvas.getContext('2d');
-        console.log('Population context created:', !!populationCtx);
-        
-        modalCharts.push(
-          new Chart(populationCtx, {
-            type: "bar",
-            data: {
-              labels: topSpecies.map(([species]) => 
-                species.length > 20 ? species.substring(0, 20) + "..." : species
-              ),
-              datasets: [
-                {
-                  label: "Total Quantity",
-                  data: topSpecies.map(([, quantity]) => quantity),
-                  backgroundColor: "rgba(16, 185, 129, 0.8)",
-                  borderColor: "rgba(16, 185, 129, 1)",
-                  borderWidth: 2,
-                  borderRadius: 6,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  callbacks: {
-                    title: function (context) {
-                      return `🐠 ${topSpecies[context[0].dataIndex][0]}`;
-                    },
-                    label: function (context) {
-                      return `Total Quantity: ${context.parsed.y}`;
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  title: { display: true, text: "Species", font: { weight: "bold" } },
-                  ticks: { maxRotation: 45, font: { size: 10, weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: "Total Quantity", font: { weight: "bold" } },
-                  ticks: { font: { weight: "bold" } },
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // 4. Family vs Quantity Distribution (Scatter Chart)
-    const diversityCanvas = validateCanvas("modalDiversityChart");
-    if (diversityCanvas && data.length > 0) {
-      const diversityCtx = diversityCanvas.getContext("2d");
-      const scatterData = [];
-      const familyColors = {};
-      const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06d6a0", "#f72585"];
-      let colorIndex = 0;
-
-      data.forEach((d, index) => {
-        const family = getFieldValue(d, ["Family", "family"]);
-        const quantity = parseFloat(
-          getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"])
-        ) || 1;
-
-        if (family && !isNaN(quantity)) {
-          if (!familyColors[family]) {
-            familyColors[family] = colors[colorIndex % colors.length];
-            colorIndex++;
-          }
-          
-          scatterData.push({
-            x: index + 1,
-            y: quantity,
-            family: family,
-            backgroundColor: familyColors[family],
-          });
-        }
-      });
-
-      if (scatterData.length > 0) {
-        modalCharts.push(
-          new Chart(diversityCtx, {
-            type: "scatter",
-            data: {
-              datasets: [
-                {
-                  label: "Family Distribution",
-                  data: scatterData.slice(0, 100),
-                  backgroundColor: (ctx) => {
-                    return scatterData[ctx.dataIndex]?.backgroundColor || "#3b82f6";
-                  },
-                  borderColor: "#ffffff",
-                  borderWidth: 1,
-                  pointRadius: 5,
-                  pointHoverRadius: 8,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  callbacks: {
-                    title: function (context) {
-                      return `🐟 Record #${context[0].parsed.x}`;
-                    },
-                    label: function (context) {
-                      const dataPoint = scatterData[context.dataIndex];
-                      return [
-                        `Family: ${dataPoint?.family || "Unknown"}`,
-                        `Quantity: ${context.parsed.y}`,
-                      ];
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  type: "linear",
-                  position: "bottom",
-                  title: { display: true, text: "Record Number", font: { weight: "bold" } },
-                  ticks: { font: { weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: "Organism Quantity", font: { weight: "bold" } },
-                  ticks: { font: { weight: "bold" } },
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-  }
-  
-  function renderModalOceanCharts(data) {
-    console.log('Rendering modal ocean charts with data:', data.length);
-    destroyModalCharts();
-    
-    // Validate canvas dimensions
-    const validateCanvas = (canvasId) => {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) {
-        console.error(`Canvas ${canvasId} not found`);
-        return null;
-      }
-      if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
-        console.error(`Canvas ${canvasId} has zero dimensions`);
-        return null;
-      }
-      return canvas;
-    };
-    
-    const getFieldValue = (record, fieldNames) => {
-      for (let field of fieldNames) {
-        if (record[field] !== undefined && record[field] !== null) {
-          const value = parseFloat(record[field]);
-          if (!isNaN(value)) return value;
-        }
-      }
-      return null;
-    };
-
-    // 1. Temperature Distribution (Bar Chart)
-    const tempCanvas = validateCanvas("modalTempChart");
-    if (tempCanvas && data.length > 0) {
-      const tempCtx = tempCanvas.getContext('2d');
-      const temperatures = data
-        .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
-        .filter((t) => t !== null);
-
-      if (temperatures.length > 0) {
-        const ranges = [
-          { label: "0-5°C", min: 0, max: 5, count: 0 },
-          { label: "5-10°C", min: 5, max: 10, count: 0 },
-          { label: "10-15°C", min: 10, max: 15, count: 0 },
-          { label: "15-20°C", min: 15, max: 20, count: 0 },
-          { label: "20-25°C", min: 20, max: 25, count: 0 },
-          { label: "25-30°C", min: 25, max: 30, count: 0 },
-          { label: "30+°C", min: 30, max: 50, count: 0 },
-        ];
-
-        temperatures.forEach((temp) => {
-          for (let range of ranges) {
-            if (temp >= range.min && temp < range.max) {
-              range.count++;
-              break;
-            }
-          }
-        });
-
-        const labels = ranges.map((r) => r.label);
-        const counts = ranges.map((r) => r.count);
-
-        console.log('Temp context created:', !!tempCtx);
-        
-        modalCharts.push(
-          new Chart(tempCtx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: "Temperature Distribution",
-                  data: counts,
-                  backgroundColor: [
-                    "rgba(59, 130, 246, 0.8)",
-                    "rgba(16, 185, 129, 0.8)",
-                    "rgba(245, 158, 11, 0.8)",
-                    "rgba(239, 68, 68, 0.8)",
-                    "rgba(139, 92, 246, 0.8)",
-                    "rgba(236, 72, 153, 0.8)",
-                    "rgba(251, 146, 60, 0.8)",
-                  ],
-                  borderColor: [
-                    "rgba(59, 130, 246, 1)",
-                    "rgba(16, 185, 129, 1)",
-                    "rgba(245, 158, 11, 1)",
-                    "rgba(239, 68, 68, 1)",
-                    "rgba(139, 92, 246, 1)",
-                    "rgba(236, 72, 153, 1)",
-                    "rgba(251, 146, 60, 1)",
-                  ],
-                  borderWidth: 2,
-                  borderRadius: 6,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  callbacks: {
-                    title: function (context) {
-                      return `🌡️ ${context[0].label}`;
-                    },
-                    label: function (context) {
-                      return `Count: ${context.parsed.y} records`;
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: "Temperature Range (°C)",
-                    font: { weight: "bold" },
-                  },
-                  ticks: { font: { weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: "Number of Records",
-                    font: { weight: "bold" },
-                  },
-                  ticks: { font: { weight: "bold" } },
-                },
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // 2. Average Depth by Locality (Bar Chart)
-    const salinityCanvas = validateCanvas("modalSalinityChart");
-    if (salinityCanvas && data.length > 0) {
-      // Calculate average depth by locality
-      const localityDepthMap = {};
-      
-      data.forEach((record) => {
-        const locality = record.locality || record.Locality || "Unknown";
-        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
-        
-        if (depth !== null) {
-          if (!localityDepthMap[locality]) {
-            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
-          }
-          localityDepthMap[locality].totalDepth += depth;
-          localityDepthMap[locality].count += 1;
-        }
-      });
-      
-      // Take top 30 rows of data (by order of appearance, not by depth values)
-      const top30Localities = {};
-      let localityCount = 0;
-      
-      // Process localities in order of first appearance in the dataset
-      for (const record of data) {
-        if (localityCount >= 30) break;
-        
-        const locality = record.locality || record.Locality || "Unknown";
-        const depth = getFieldValue(record, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
-        
-        if (!top30Localities[locality] && depth !== null) {
-          top30Localities[locality] = localityDepthMap[locality];
-          localityCount++;
-        }
-      }
-      
-      const sortedLocalities = Object.entries(top30Localities)
-        .map(([locality, data]) => ({
-          locality,
-          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
-        }));
-
-      if (sortedLocalities.length > 0) {
-        const localityLabels = sortedLocalities.map(item => item.locality);
-        const averageDepths = sortedLocalities.map(item => item.avgDepth);
-        
-        // Modern gradient colors
-        const gradientColors = [
-          "rgba(99, 102, 241, 0.8)", "rgba(59, 130, 246, 0.8)", "rgba(16, 185, 129, 0.8)",
-          "rgba(245, 158, 11, 0.8)", "rgba(239, 68, 68, 0.8)", "rgba(139, 92, 246, 0.8)",
-          "rgba(236, 72, 153, 0.8)", "rgba(20, 184, 166, 0.8)", "rgba(251, 146, 60, 0.8)",
-          "rgba(34, 197, 94, 0.8)", "rgba(168, 85, 247, 0.8)", "rgba(14, 165, 233, 0.8)",
-          "rgba(132, 204, 22, 0.8)", "rgba(251, 113, 133, 0.8)", "rgba(45, 212, 191, 0.8)"
-        ];
-        
-        const borderColors = gradientColors.map(color => color.replace('0.8', '1'));
-
-        const salinityCtx = salinityCanvas.getContext('2d');
-        console.log('Salinity context created:', !!salinityCtx);
-        
-        modalCharts.push(
-          new Chart(salinityCtx, {
-            type: "bar",
-            data: {
-              labels: localityLabels,
-              datasets: [
-                {
-                  label: "Average Depth",
-                  data: averageDepths,
-                  backgroundColor: gradientColors.slice(0, localityLabels.length),
-                  borderColor: borderColors.slice(0, localityLabels.length),
-                  borderWidth: 3,
-                  borderRadius: 8,
-                  borderSkipped: false,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: {
-                intersect: false,
-                mode: 'index',
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#fff',
-                  bodyColor: '#fff',
-                  callbacks: {
-                    title: function(context) {
-                      return `📍 ${context[0].label}`;
-                    },
-                    label: function(context) {
-                      return `🌊 Average Depth: ${context.parsed.y}m`;
-                    }
-                  }
-                }
-              },
-              scales: { 
-                x: {
-                  title: { 
-                    display: true, 
-                    text: "🏙️ Locality",
-                    font: { size: 14, weight: 'bold' },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                    color: '#6B7280',
-                    font: { size: 12, weight: '500' }
-                  },
-                  grid: { display: false }
-                },
-                y: { 
-                  beginAtZero: true, 
-                  title: { 
-                    display: true, 
-                    text: "🌊 Average Depth (meters)",
-                    font: { size: 14, weight: 'bold' },
-                    color: '#374151'
-                  },
-                  ticks: {
-                    color: '#6B7280',
-                    font: { size: 11 },
-                    callback: function(value) {
-                      return value + 'm';
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(156, 163, 175, 0.2)',
-                    borderDash: [5, 5]
-                  }
-                } 
-              },
-            },
-          })
-        );
-      }
-    }
-
-    // 3. Average Temperature & Salinity by Locality (Dual Bar Chart)
-    const depthCanvas = validateCanvas("modalDepthChart");
-    if (depthCanvas && data.length > 0) {
-      const localityDataMap = {};
-      
-      data.forEach((record) => {
-        const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
-        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-        
-        if (!localityDataMap[locality]) {
-          localityDataMap[locality] = { 
-            tempSum: 0, tempCount: 0, 
-            salinitySum: 0, salinityCount: 0 
-          };
-        }
-        
-        if (temperature !== null) {
-          localityDataMap[locality].tempSum += temperature;
-          localityDataMap[locality].tempCount += 1;
-        }
-        
-        if (salinity !== null) {
-          localityDataMap[locality].salinitySum += salinity;
-          localityDataMap[locality].salinityCount += 1;
-        }
-      });
-      
-      // Take top 30 rows of data (by order of appearance, not by temperature values)
-      const top30LocalityData = {};
-      let localityCount = 0;
-      
-      // Process localities in order of first appearance in the dataset
-      for (const record of data) {
-        if (localityCount >= 30) break;
-        
-        const locality = record.locality || record.Locality || "Unknown";
-        const temperature = getFieldValue(record, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]);
-        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-        
-        if (!top30LocalityData[locality] && (temperature !== null || salinity !== null)) {
-          top30LocalityData[locality] = localityDataMap[locality];
-          localityCount++;
-        }
-      }
-      
-      const processedData = Object.entries(top30LocalityData)
-        .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
-        .map(([locality, data]) => ({
-          locality,
-          avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
-          avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
-        }));
-
-      if (processedData.length > 0) {
-        const localities = processedData.map(item => item.locality);
-        const avgTemperatures = processedData.map(item => item.avgTemp);
-        const avgSalinities = processedData.map(item => item.avgSalinity);
-
-        const depthCtx = depthCanvas.getContext('2d');
-        console.log('Depth context created:', !!depthCtx);
-        
-        modalCharts.push(
-          new Chart(depthCtx, {
-            type: "bar",
-            data: {
-              labels: localities,
-              datasets: [
-                {
-                  label: "temperature_C",
-                  data: avgTemperatures,
-                  backgroundColor: "rgba(239, 68, 68, 0.7)",
-                  borderColor: "rgba(239, 68, 68, 1)",
-                  borderWidth: 2,
-                  borderRadius: 4,
-                  yAxisID: 'y'
-                },
-                {
-                  label: "Salinity",
-                  data: avgSalinities,
-                  backgroundColor: "rgba(59, 130, 246, 0.7)",
-                  borderColor: "rgba(59, 130, 246, 1)",
-                  borderWidth: 2,
-                  borderRadius: 4,
-                  yAxisID: 'y1'
-                }
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: {
-                mode: 'index',
-                intersect: false,
-              },
-              plugins: {
-                legend: {
-                  position: 'top',
-                  labels: {
-                    font: { size: 12, weight: 'bold' },
-                    padding: 20,
-                    usePointStyle: true
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  ticks: {
-                    font: { weight: 'bold' },
-                    maxRotation: 45
-                  }
-                },
-                y: {
-                  type: 'linear',
-                  display: true,
-                  position: 'left',
-                  title: {
-                    display: true,
-                    text: 'Temperature (°C)',
-                    font: { weight: 'bold' },
-                    color: 'rgba(239, 68, 68, 1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' },
-                    color: 'rgba(239, 68, 68, 1)'
-                  }
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  title: {
-                    display: true,
-                    text: 'Salinity (ppt)',
-                    font: { weight: 'bold' },
-                    color: 'rgba(16, 185, 129, 1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' },
-                    color: 'rgba(16, 185, 129, 1)'
-                  },
-                  grid: {
-                    drawOnChartArea: false,
-                  }
-                }
-              }
-            }
-          })
-        );
-      }
-    }
-
-    // 4. Temperature vs Salinity Scatter Chart  
-    const tempSalinityScatterCanvas = validateCanvas("modalTempSalinityScatterChart");
-    if (tempSalinityScatterCanvas && data.length > 0) {
-      const scatterData = data
-        .map((d) => {
-          const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
-          const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-          
-          return {
-            x: temp,
-            y: salinity,
-            backgroundColor: temp !== null ? 
-              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
-              'rgba(99, 102, 241, 0.7)'
-          };
-        })
-        .filter((d) => d.x !== null && d.y !== null)
-        .slice(0, 150);
-        
-      if (scatterData.length > 0) {
-        const tempSalinityScatterCtx = tempSalinityScatterCanvas.getContext('2d');
-        console.log('Temp-Salinity scatter context created:', !!tempSalinityScatterCtx);
-        
-        modalCharts.push(
-          new Chart(tempSalinityScatterCtx, {
-            type: "scatter",
-            data: {
-              datasets: [{
-                label: "Temperature vs Salinity",
-                data: scatterData,
-                backgroundColor: scatterData.map(d => d.backgroundColor),
-                borderColor: 'rgba(59, 130, 246, 0.8)',
-                borderWidth: 1,
-                pointRadius: 6,
-                pointHoverRadius: 8
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'top',
-                  labels: {
-                    font: { size: 12, weight: 'bold' },
-                    padding: 20,
-                    usePointStyle: true
-                  }
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  titleFont: { size: 14, weight: 'bold' },
-                  bodyFont: { size: 12 },
-                  padding: 12,
-                  cornerRadius: 8,
-                  callbacks: {
-                    label: function(context) {
-                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  type: "linear",
-                  position: "bottom",
-                  title: { 
-                    display: true, 
-                    text: "Temperature (°C)",
-                    font: { weight: 'bold' }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' }
-                  }
-                },
-                y: { 
-                  title: { 
-                    display: true, 
-                    text: "Salinity (ppt)",
-                    font: { weight: 'bold' }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  },
-                  ticks: {
-                    font: { weight: 'bold' }
-                  }
-                }
-              }
-            }
-          })
-        );
-      }
-    }
-  }
-});
-
-// --- Modal Chart Functions ---
-function destroyModalCharts() {
-  modalCharts.forEach((chart) => chart.destroy());
-  modalCharts = [];
+  });
 }
 
-// Close modal when clicking outside
-window.addEventListener('click', (event) => {
-  const modal = document.getElementById('viewModal');
-  if (event.target === modal) {
-    closeViewModal();
+function initializeSampleData() {
+  uploadedFiles = [...sampleData];
+  updateRecentUploads();
+}
+
+// ===== DRAG AND DROP HANDLERS =====
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropArea').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  document.getElementById('dropArea').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropArea').classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    processFile(files[0]);
   }
-});
+}
 
-// --- Modal Map Functions ---
-let modalMap = null;
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) {
+    processFile(file);
+  }
+}
 
-function initializeModalMap(data, dataType) {
-    // Destroy existing modal map if it exists
-    if (modalMap) {
-      modalMap.remove();
-      modalMap = null;
+// ===== FILE PROCESSING =====
+function processFile(file) {
+  const fileDetails = document.getElementById('fileDetails');
+  const uploadBtn = document.getElementById('uploadBtn');
+
+  // Show file details
+  fileDetails.innerHTML = `
+    <div style="margin-top: 1rem; padding: 1rem; background: #f1f5f9; border-radius: 8px; border-left: 4px solid #3b82f6;">
+      <strong>File:</strong> ${file.name}<br>
+      <strong>Size:</strong> ${formatFileSize(file.size)}<br>
+      <strong>Type:</strong> ${file.type || 'Unknown'}
+    </div>
+  `;
+  
+  uploadBtn.hidden = false;
+  uploadBtn.onclick = () => handleUpload(file);
+
+  // Parse file for instant preview
+  parseFileData(file).then(data => {
+    if (data && data.length > 0) {
+      currentFileData = data;
+      createInstantPreview(data);
     }
+  }).catch(error => {
+    console.error('Error parsing file:', error);
+    showError('Error parsing file. Please check the file format.');
+  });
+}
 
-    // Wait for the DOM element to be ready
-    setTimeout(() => {
-      const mapContainer = document.getElementById('modalMap');
-      if (!mapContainer) return;
-      
-      // Ensure container is visible
-      if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
-        console.log('Map container not visible yet, retrying...');
-        setTimeout(() => initializeModalMap(data, dataType), 200);
-        return;
-      }
+async function parseFileData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      try {
+        const content = e.target.result;
+        let data;
 
-      // Initialize modal map
-      modalMap = L.map('modalMap').setView([20.0, 77.0], 5); // Center on India
-
-      // Add OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-      }).addTo(modalMap);
-
-      // Force map to resize properly in modal
-      setTimeout(() => {
-        modalMap.invalidateSize();
-      }, 100);
-
-      // Function to get field value with multiple possible field names
-      const getFieldValue = (record, fieldNames) => {
-        for (let field of fieldNames) {
-          if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
-            return record[field];
-          }
-        }
-        return null;
-      };
-
-      // Add markers for each data point
-      let bounds = [];
-      
-      data.forEach((record, index) => {
-        // Get latitude and longitude
-        const lat = parseFloat(
-          getFieldValue(record, ['decimalLatitude', 'latitude', 'lat', 'Latitude'])
-        );
-        const lng = parseFloat(
-          getFieldValue(record, ['decimalLongitude', 'longitude', 'lng', 'lon', 'Longitude'])
-        );
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          bounds.push([lat, lng]);
-
-          // Use standard Leaflet marker icon
-          const customIcon = L.icon({
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
+        if (file.name.endsWith('.csv')) {
+          // Parse CSV using PapaParse
+          Papa.parse(content, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: true,
+            complete: function(results) {
+              resolve(results.data);
+            },
+            error: function(error) {
+              reject(error);
+            }
           });
-
-          // Create popup content based on data type
-          let popupContent = '';
-          if (dataType === 'fish') {
-            const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown Species';
-            const family = getFieldValue(record, ['Family', 'family']) || 'Unknown Family';
-            const quantity = getFieldValue(record, ['organismQuantity', 'organism_quantity', 'quantity', 'count']) || 'N/A';
-            const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
-            
-            popupContent = `
-              <div class="station-info">
-                <h4>🐠 ${species}</h4>
-                <div class="species">👨‍👩‍👧‍👦 Family: ${family}</div>
-                <div class="temp">📊 Quantity: ${quantity}</div>
-                <div class="date">📅 Date: ${date}</div>
-                <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
-                <div class="data-source">📊 Source: Uploaded Dataset</div>
-              </div>
-            `;
-          } else {
-            const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
-            const temperature = getFieldValue(record, ['Temperature_C', 'Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
-            const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
-            const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
-            const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
-            
-            popupContent = `
-              <div class="station-info">
-                <h4>🌊 ${locality}</h4>
-                <div class="temp">🌡️ Temperature: ${temperature !== null ? temperature + '°C' : 'N/A'}</div>
-                <div class="salinity">🌊 Salinity: ${salinity !== null ? salinity + ' PSU' : 'N/A'}</div>
-                <div class="depth">📏 Depth: ${depth !== null ? depth + 'm' : 'N/A'}</div>
-                <div class="date">📅 Date: ${date}</div>
-                <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
-                <div class="data-source">📊 Source: Uploaded Dataset</div>
-              </div>
-            `;
-          }
-
-          // Add marker to modal map
-          L.marker([lat, lng], { icon: customIcon })
-            .addTo(modalMap)
-            .bindPopup(popupContent, {
-              className: 'custom-popup'
-            });
+        } else if (file.name.endsWith('.json')) {
+          data = JSON.parse(content);
+          resolve(Array.isArray(data) ? data : [data]);
+        } else {
+          reject(new Error('Unsupported file type'));
         }
-      });
-
-      // Fit map to show all data points
-      if (bounds.length > 0) {
-        modalMap.fitBounds(bounds, { 
-          padding: [20, 20],
-          maxZoom: 10
-        });
+      } catch (error) {
+        reject(error);
       }
-
-      // Invalidate size to ensure proper rendering
-      setTimeout(() => {
-        if (modalMap) {
-          modalMap.invalidateSize();
-        }
-      }, 100);
-    }, 200);
-  }
-
-// --- Preview Map Functions ---
-let previewMap = null;
-
-function initializePreviewMap(data, dataType) {
-  // Destroy existing map if it exists
-  if (previewMap) {
-    previewMap.remove();
-    previewMap = null;
-  }
-
-  // Wait for the DOM element to be ready
-  setTimeout(() => {
-    const mapContainer = document.getElementById('previewMap');
-    if (!mapContainer) return;
-
-    // Initialize map
-    previewMap = L.map('previewMap').setView([20.0, 77.0], 5); // Center on India
-
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18
-    }).addTo(previewMap);
-
-    // Function to get field value with multiple possible field names
-    const getFieldValue = (record, fieldNames) => {
-      for (let field of fieldNames) {
-        if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
-          return record[field];
-        }
-      }
-      return null;
     };
 
-    // Add markers for each data point
-    let bounds = [];
-    
-    data.forEach((record, index) => {
-      // Get latitude and longitude
-      const lat = parseFloat(
-        getFieldValue(record, ['decimalLatitude', 'latitude', 'lat', 'Latitude'])
-      );
-      const lng = parseFloat(
-        getFieldValue(record, ['decimalLongitude', 'longitude', 'lng', 'lon', 'Longitude'])
-      );
+    reader.onerror = () => reject(new Error('Error reading file'));
+    reader.readAsText(file);
+  });
+}
 
-      if (!isNaN(lat) && !isNaN(lng)) {
-        bounds.push([lat, lng]);
+// ===== UPLOAD HANDLER =====
+function handleUpload(file) {
+  if (!currentFileData) {
+    showError('Please select a valid file first.');
+    return;
+  }
 
-        // Create marker with different colors based on data type
-        let markerColor = dataType === 'fish' ? '#3b82f6' : '#10b981';
-        
-        // For ocean data, color code by temperature
-        if (dataType === 'ocean') {
-          const temp = parseFloat(
-            getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp'])
-          );
-          if (!isNaN(temp)) {
-            if (temp > 25) markerColor = '#ef4444'; // Red for high temp
-            else if (temp < 15) markerColor = '#3b82f6'; // Blue for low temp
-          }
-        }
+  const uploadMsg = document.getElementById('uploadMsg');
+  uploadMsg.innerHTML = `
+    <div style="margin-top: 1rem; padding: 1rem; background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 8px; color: #065f46; font-weight: 500;">
+      <i class="fas fa-check-circle"></i> File uploaded successfully! Data cleaned and ready for download.
+    </div>
+  `;
 
-        // Use standard Leaflet marker icon
-        const customIcon = L.icon({
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
-        });
+  // Add to uploaded files
+  const newFile = {
+    id: 'uploaded_' + Date.now(),
+    name: file.name,
+    type: currentDataType,
+    size: formatFileSize(file.size),
+    uploadDate: new Date().toISOString().split('T')[0],
+    downloadUrl: generateDownloadUrl(currentFileData, file.name),
+    data: currentFileData
+  };
 
-        // Create popup content based on data type (same style as dashboard)
-        let popupContent = '';
-        if (dataType === 'fish') {
-          const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown Species';
-          const family = getFieldValue(record, ['Family', 'family']) || 'Unknown Family';
-          const quantity = getFieldValue(record, ['organismQuantity', 'organism_quantity', 'quantity', 'count']) || 'N/A';
-          const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
-          
-          popupContent = `
-            <div class="station-info">
-              <h4>🐠 ${species}</h4>
-              <div class="species">👨‍👩‍👧‍👦 Family: ${family}</div>
-              <div class="temp">📊 Quantity: ${quantity}</div>
-              <div class="date">📅 Date: ${date}</div>
-              <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
-              <div class="data-source">📊 Source: Uploaded Dataset</div>
-            </div>
-          `;
-        } else {
-          const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
-          const temperature = getFieldValue(record, ['Temperature_C', 'Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
-          const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
-          const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
-          const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
-          
-          popupContent = `
-            <div class="station-info">
-              <h4>🌊 ${locality}</h4>
-              <div class="temp">🌡️ Temperature: ${temperature !== null ? temperature + '°C' : 'N/A'}</div>
-              <div class="salinity">🌊 Salinity: ${salinity !== null ? salinity + ' PSU' : 'N/A'}</div>
-              <div class="depth">📏 Depth: ${depth !== null ? depth + 'm' : 'N/A'}</div>
-              <div class="date">📅 Date: ${date}</div>
-              <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
-              <div class="data-source">📊 Source: Uploaded Dataset</div>
-            </div>
-          `;
-        }
+  uploadedFiles.unshift(newFile);
+  updateRecentUploads();
 
-        // Add marker to map
-        L.marker([lat, lng], { icon: customIcon })
-          .addTo(previewMap)
-          .bindPopup(popupContent, {
-            className: 'custom-popup'
-          });
-      }
-    });
+  // Reset form
+  setTimeout(() => {
+    document.getElementById('fileDetails').innerHTML = '';
+    document.getElementById('uploadBtn').hidden = true;
+    document.getElementById('fileUpload').value = '';
+    uploadMsg.innerHTML = '';
+  }, 3000);
+}
 
-    // Fit map to show all data points
-    if (bounds.length > 0) {
-      previewMap.fitBounds(bounds, { 
-        padding: [20, 20],
-        maxZoom: 10
-      });
+// ===== VISUALIZATION FUNCTIONS =====
+function createInstantPreview(data) {
+  const visualizationBox = document.getElementById('visualizationBox');
+  
+  if (!data || data.length === 0) {
+    showVisualizationPlaceholder();
+    return;
+  }
+
+  visualizationBox.innerHTML = `
+    <div class="visualization-container">
+      <div class="visualization-header">
+        <div>
+          <h3 class="visualization-title">Data Preview - ${getDataTypeTitle(currentDataType)}</h3>
+          <p class="visualization-subtitle">${data.length} records loaded</p>
+        </div>
+        <button class="export-btn" onclick="exportAllCharts()">
+          <i class="fas fa-download"></i>
+          Export All Charts
+        </button>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-line"></i> ${getChartTitle(currentDataType, 0)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('previewChart1')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="previewChart1"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-bar"></i> ${getChartTitle(currentDataType, 1)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('previewChart2')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="previewChart2"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-pie"></i> ${getChartTitle(currentDataType, 2)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('previewChart3')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="previewChart3"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-area"></i> ${getChartTitle(currentDataType, 3)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('previewChart4')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="previewChart4"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  visualizationBox.classList.add('has-data');
+
+  // Create charts with delay to ensure DOM is ready
+  setTimeout(() => {
+    createPreviewCharts(data);
+  }, 100);
+}
+
+function createPreviewCharts(data) {
+  // Destroy existing charts
+  Object.values(previewCharts).forEach(chart => {
+    if (chart && typeof chart.destroy === 'function') {
+      chart.destroy();
     }
+  });
+  previewCharts = {};
 
-    // Invalidate size to ensure proper rendering
-    setTimeout(() => {
-      if (previewMap) {
-        previewMap.invalidateSize();
+  // Create new charts based on data type
+  switch (currentDataType) {
+    case 'ocean':
+      createOceanCharts(data, 'preview');
+      break;
+    case 'fish':
+      createFishCharts(data, 'preview');
+      break;
+    case 'edna':
+      createEDNACharts(data, 'preview');
+      break;
+    case 'otolith':
+      createOtolithCharts(data, 'preview');
+      break;
+  }
+}
+
+// ===== CHART CREATION FUNCTIONS =====
+function createOceanCharts(data, prefix) {
+  const chartConfigs = [
+    {
+      id: `${prefix}Chart1`,
+      type: 'line',
+      label: 'Temperature Trends',
+      data: data.map((d, i) => ({ x: i, y: parseFloat(d.temperature) || Math.random() * 30 + 10 })),
+      color: 'rgb(239, 68, 68)'
+    },
+    {
+      id: `${prefix}Chart2`,
+      type: 'bar',
+      label: 'Salinity Distribution',
+      data: data.slice(0, 10).map((d, i) => ({ x: `Station ${i+1}`, y: parseFloat(d.salinity) || Math.random() * 5 + 32 })),
+      color: 'rgb(59, 130, 246)'
+    },
+    {
+      id: `${prefix}Chart3`,
+      type: 'doughnut',
+      label: 'Depth Categories',
+      data: [
+        { label: 'Shallow (0-50m)', value: data.filter(d => (parseFloat(d.depth) || 0) <= 50).length },
+        { label: 'Medium (50-200m)', value: data.filter(d => (parseFloat(d.depth) || 0) > 50 && (parseFloat(d.depth) || 0) <= 200).length },
+        { label: 'Deep (200m+)', value: data.filter(d => (parseFloat(d.depth) || 0) > 200).length }
+      ],
+      colors: ['rgb(34, 197, 94)', 'rgb(249, 115, 22)', 'rgb(168, 85, 247)']
+    },
+    {
+      id: `${prefix}Chart4`,
+      type: 'scatter',
+      label: 'Temperature vs Depth',
+      data: data.map(d => ({ 
+        x: parseFloat(d.temperature) || Math.random() * 30 + 10, 
+        y: parseFloat(d.depth) || Math.random() * 1000 
+      })),
+      color: 'rgb(16, 185, 129)'
+    }
+  ];
+
+  chartConfigs.forEach(config => {
+    createChart(config, prefix);
+  });
+}
+
+function createFishCharts(data, prefix) {
+  const chartConfigs = [
+    {
+      id: `${prefix}Chart1`,
+      type: 'bar',
+      label: 'Species Count',
+      data: getSpeciesCount(data),
+      color: 'rgb(34, 197, 94)'
+    },
+    {
+      id: `${prefix}Chart2`,
+      type: 'line',
+      label: 'Length Distribution',
+      data: data.map((d, i) => ({ x: i, y: parseFloat(d.length) || Math.random() * 50 + 10 })),
+      color: 'rgb(249, 115, 22)'
+    },
+    {
+      id: `${prefix}Chart3`,
+      type: 'pie',
+      label: 'Family Distribution',
+      data: getFamilyDistribution(data),
+      colors: ['rgb(59, 130, 246)', 'rgb(239, 68, 68)', 'rgb(34, 197, 94)', 'rgb(249, 115, 22)', 'rgb(168, 85, 247)']
+    },
+    {
+      id: `${prefix}Chart4`,
+      type: 'scatter',
+      label: 'Length vs Weight',
+      data: data.map(d => ({ 
+        x: parseFloat(d.length) || Math.random() * 50 + 10, 
+        y: parseFloat(d.weight) || Math.random() * 2000 + 100 
+      })),
+      color: 'rgb(168, 85, 247)'
+    }
+  ];
+
+  chartConfigs.forEach(config => {
+    createChart(config, prefix);
+  });
+}
+
+function createEDNACharts(data, prefix) {
+  const chartConfigs = [
+    {
+      id: `${prefix}Chart1`,
+      type: 'bar',
+      label: 'DNA Concentration',
+      data: data.slice(0, 10).map((d, i) => ({ 
+        x: `Sample ${i+1}`, 
+        y: parseFloat(d.concentration) || Math.random() * 100 + 10 
+      })),
+      color: 'rgb(168, 85, 247)'
+    },
+    {
+      id: `${prefix}Chart2`,
+      type: 'line',
+      label: 'Quality Scores',
+      data: data.map((d, i) => ({ x: i, y: parseFloat(d.quality) || Math.random() * 40 + 60 })),
+      color: 'rgb(34, 197, 94)'
+    },
+    {
+      id: `${prefix}Chart3`,
+      type: 'doughnut',
+      label: 'Detection Success',
+      data: [
+        { label: 'Detected', value: data.filter(d => (d.detected === 'Yes' || Math.random() > 0.3)).length },
+        { label: 'Not Detected', value: data.filter(d => (d.detected === 'No' || Math.random() <= 0.3)).length }
+      ],
+      colors: ['rgb(34, 197, 94)', 'rgb(239, 68, 68)']
+    },
+    {
+      id: `${prefix}Chart4`,
+      type: 'bar',
+      label: 'Species Detected',
+      data: getSpeciesDetected(data),
+      color: 'rgb(59, 130, 246)'
+    }
+  ];
+
+  chartConfigs.forEach(config => {
+    createChart(config, prefix);
+  });
+}
+
+function createOtolithCharts(data, prefix) {
+  const chartConfigs = [
+    {
+      id: `${prefix}Chart1`,
+      type: 'line',
+      label: 'Age Distribution',
+      data: data.map((d, i) => ({ x: i, y: parseFloat(d.age) || Math.random() * 10 + 1 })),
+      color: 'rgb(249, 115, 22)'
+    },
+    {
+      id: `${prefix}Chart2`,
+      type: 'bar',
+      label: 'Growth Rings',
+      data: data.slice(0, 10).map((d, i) => ({ 
+        x: `Specimen ${i+1}`, 
+        y: parseInt(d.rings) || Math.floor(Math.random() * 15 + 5) 
+      })),
+      color: 'rgb(168, 85, 247)'
+    },
+    {
+      id: `${prefix}Chart3`,
+      type: 'scatter',
+      label: 'Size vs Age',
+      data: data.map(d => ({ 
+        x: parseFloat(d.size) || Math.random() * 50 + 10, 
+        y: parseFloat(d.age) || Math.random() * 10 + 1 
+      })),
+      color: 'rgb(34, 197, 94)'
+    },
+    {
+      id: `${prefix}Chart4`,
+      type: 'pie',
+      label: 'Growth Patterns',
+      data: [
+        { label: 'Slow Growth', value: Math.floor(data.length * 0.3) },
+        { label: 'Normal Growth', value: Math.floor(data.length * 0.5) },
+        { label: 'Fast Growth', value: Math.floor(data.length * 0.2) }
+      ],
+      colors: ['rgb(239, 68, 68)', 'rgb(59, 130, 246)', 'rgb(34, 197, 94)']
+    }
+  ];
+
+  chartConfigs.forEach(config => {
+    createChart(config, prefix);
+  });
+}
+
+function createChart(config, prefix) {
+  const ctx = document.getElementById(config.id);
+  if (!ctx) return;
+
+  let chartConfig;
+
+  switch (config.type) {
+    case 'line':
+      chartConfig = {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: config.label,
+            data: config.data,
+            borderColor: config.color,
+            backgroundColor: config.color + '20',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: getChartOptions('line')
+      };
+      break;
+
+    case 'bar':
+      chartConfig = {
+        type: 'bar',
+        data: {
+          labels: config.data.map(d => d.x),
+          datasets: [{
+            label: config.label,
+            data: config.data.map(d => d.y),
+            backgroundColor: config.color + '80',
+            borderColor: config.color,
+            borderWidth: 2
+          }]
+        },
+        options: getChartOptions('bar')
+      };
+      break;
+
+    case 'scatter':
+      chartConfig = {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: config.label,
+            data: config.data,
+            backgroundColor: config.color + '80',
+            borderColor: config.color,
+            borderWidth: 2
+          }]
+        },
+        options: getChartOptions('scatter')
+      };
+      break;
+
+    case 'pie':
+    case 'doughnut':
+      chartConfig = {
+        type: config.type,
+        data: {
+          labels: config.data.map(d => d.label),
+          datasets: [{
+            data: config.data.map(d => d.value),
+            backgroundColor: config.colors || [config.color + '80'],
+            borderColor: config.colors || [config.color],
+            borderWidth: 2
+          }]
+        },
+        options: getChartOptions(config.type)
+      };
+      break;
+  }
+
+  if (chartConfig) {
+    const chart = new Chart(ctx, chartConfig);
+    if (prefix === 'preview') {
+      previewCharts[config.id] = chart;
+    } else if (prefix === 'modal') {
+      modalCharts[config.id] = chart;
+    }
+  }
+}
+
+function getChartOptions(type) {
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top'
       }
-    }, 100);
+    }
+  };
+
+  if (type === 'pie' || type === 'doughnut') {
+    return {
+      ...baseOptions,
+      plugins: {
+        ...baseOptions.plugins,
+        legend: {
+          display: true,
+          position: 'bottom'
+        }
+      }
+    };
+  }
+
+  return {
+    ...baseOptions,
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          display: false
+        }
+      },
+      y: {
+        display: true,
+        grid: {
+          display: true,
+          color: 'rgba(0,0,0,0.1)'
+        }
+      }
+    }
+  };
+}
+
+// ===== MODAL FUNCTIONS =====
+function openViewModal(fileId) {
+  const file = uploadedFiles.find(f => f.id === fileId);
+  if (!file) return;
+
+  const modal = document.getElementById('viewModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+
+  modalTitle.textContent = `${file.name} - Visualization`;
+  modalBody.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading visualization...</p></div>';
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Load visualization
+  setTimeout(() => {
+    loadModalVisualization(file);
   }, 500);
 }
 
-// --- Export Functions (Global scope) ---
-window.exportSingleChart = function(chartId, filename) {
-    const canvas = document.getElementById(chartId);
-    if (canvas) {
-      const link = document.createElement('a');
-      link.download = `${filename}_${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+function loadModalVisualization(file) {
+  const modalBody = document.getElementById('modalBody');
+  
+  modalBody.innerHTML = `
+    <div class="modal-charts-container">
+      <div class="modal-charts-header">
+        <div>
+          <h3>${getDataTypeTitle(file.type)} Analysis</h3>
+          <p class="modal-subtitle">${file.data ? file.data.length : 0} records • Uploaded ${file.uploadDate}</p>
+        </div>
+        <button class="export-btn" onclick="exportModalCharts()">
+          <i class="fas fa-download"></i>
+          Export All Charts
+        </button>
+      </div>
+      <div class="modal-charts-grid">
+        <div class="modal-chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-line"></i> ${getChartTitle(file.type, 0)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('modalChart1')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="modalChart1"></canvas>
+        </div>
+        <div class="modal-chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-bar"></i> ${getChartTitle(file.type, 1)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('modalChart2')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="modalChart2"></canvas>
+        </div>
+        <div class="modal-chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-pie"></i> ${getChartTitle(file.type, 2)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('modalChart3')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="modalChart3"></canvas>
+        </div>
+        <div class="modal-chart-container">
+          <div class="chart-header">
+            <h5><i class="fas fa-chart-area"></i> ${getChartTitle(file.type, 3)}</h5>
+            <button class="chart-export-btn" onclick="exportChart('modalChart4')">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+          <canvas id="modalChart4"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Create charts with delay to ensure DOM is ready
+  setTimeout(() => {
+    createModalCharts(file);
+  }, 100);
+}
+
+function createModalCharts(file) {
+  // Destroy existing modal charts
+  Object.values(modalCharts).forEach(chart => {
+    if (chart && typeof chart.destroy === 'function') {
+      chart.destroy();
+    }
+  });
+  modalCharts = {};
+
+  if (!file.data || file.data.length === 0) {
+    console.error('No data available for visualization');
+    return;
+  }
+
+  // Create charts based on file type
+  switch (file.type) {
+    case 'ocean':
+      createOceanCharts(file.data, 'modal');
+      break;
+    case 'fish':
+      createFishCharts(file.data, 'modal');
+      break;
+    case 'edna':
+      createEDNACharts(file.data, 'modal');
+      break;
+    case 'otolith':
+      createOtolithCharts(file.data, 'modal');
+      break;
+  }
+}
+
+function closeViewModal() {
+  const modal = document.getElementById('viewModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto';
+
+  // Destroy modal charts to free memory
+  Object.values(modalCharts).forEach(chart => {
+    if (chart && typeof chart.destroy === 'function') {
+      chart.destroy();
+    }
+  });
+  modalCharts = {};
+}
+
+// ===== UTILITY FUNCTIONS =====
+function handleDataTypeChange(e) {
+  currentDataType = e.target.value;
+  updateVisualizationContent();
+  
+  if (currentFileData) {
+    createInstantPreview(currentFileData);
+  }
+}
+
+function updateVisualizationContent() {
+  const title = document.getElementById('visualizationTitle');
+  const description = document.getElementById('visualizationDescription');
+  const placeholderText = document.getElementById('placeholderText');
+  const chartDescription = document.getElementById('chartDescription');
+
+  const content = getVisualizationContent(currentDataType);
+  
+  if (title) title.innerHTML = `<i class="fas fa-chart-bar"></i> ${content.title}`;
+  if (description) description.textContent = content.description;
+  if (placeholderText) placeholderText.textContent = content.placeholder;
+  if (chartDescription) chartDescription.textContent = content.charts;
+}
+
+function getVisualizationContent(dataType) {
+  const content = {
+    ocean: {
+      title: 'Ocean Data Visualization',
+      description: 'Interactive charts showing Temperature, Salinity, Depth distribution and their relationships from your uploaded data.',
+      placeholder: 'Upload an Ocean Data file to see detailed visualizations',
+      charts: 'Charts will show: Temperature trends, Salinity levels, Depth distribution, and Temperature-Depth correlations'
+    },
+    fish: {
+      title: 'Fish Data Visualization', 
+      description: 'Comprehensive analysis of fish species, morphometric data, and population statistics from your uploaded data.',
+      placeholder: 'Upload a Fish Data file to see detailed visualizations',
+      charts: 'Charts will show: Species distribution, Length-Weight relationships, Family classifications, and Population metrics'
+    },
+    edna: {
+      title: 'eDNA Data Visualization',
+      description: 'Environmental DNA analysis showing species detection, concentration levels, and quality metrics.',
+      placeholder: 'Upload an eDNA Data file to see detailed visualizations', 
+      charts: 'Charts will show: DNA concentration levels, Quality scores, Detection success rates, and Species identification'
+    },
+    otolith: {
+      title: 'Otolith Data Visualization',
+      description: 'Otolith microstructure analysis displaying age determination, growth patterns, and morphometric relationships.',
+      placeholder: 'Upload an Otolith Data file to see detailed visualizations',
+      charts: 'Charts will show: Age distribution, Growth ring counts, Size-Age correlations, and Growth pattern analysis'
     }
   };
 
-  window.exportAllCharts = function(dataType) {
-    const timestamp = new Date().toISOString().split('T')[0];
-    if (dataType === 'fish') {
-      const chartIds = ['familyChart', 'taxonomyChart', 'populationChart', 'diversityChart'];
-      const chartNames = ['Fish_Family_Distribution', 'Fish_Taxonomic_Groups', 'Fish_Population_Quantities', 'Fish_Organism_Diversity'];
-      
-      chartIds.forEach((id, index) => {
-        setTimeout(() => {
-          exportSingleChart(id, chartNames[index]);
-        }, index * 500); // Stagger downloads to avoid browser blocking
-      });
-    } else if (dataType === 'ocean') {
-      const chartIds = ['tempChart', 'salinityChart', 'tempSalinityChart', 'tempSalinityScatterChart'];
-      const chartNames = ['Ocean_Temperature_Distribution', 'Ocean_Salinity_Levels', 'Ocean_Temperature_Salinity_by_Locality', 'Ocean_Temperature_vs_Salinity'];
-      
-      chartIds.forEach((id, index) => {
-        setTimeout(() => {
-          exportSingleChart(id, chartNames[index]);
-        }, index * 500); // Stagger downloads to avoid browser blocking
-      });
-    }
-  };
+  return content[dataType] || content.ocean;
+}
 
-  window.exportAllModalCharts = function(dataType) {
-    const timestamp = new Date().toISOString().split('T')[0];
-    if (dataType === 'fish') {
-      const chartIds = ['modalFamilyChart', 'modalTaxonomyChart', 'modalPopulationChart', 'modalDiversityChart'];
-      const chartNames = ['Modal_Fish_Family_Distribution', 'Modal_Fish_Taxonomic_Groups', 'Modal_Fish_Population_Quantities', 'Modal_Fish_Organism_Diversity'];
-      
-      chartIds.forEach((id, index) => {
-        setTimeout(() => {
-          exportSingleChart(id, chartNames[index]);
-        }, index * 500); // Stagger downloads to avoid browser blocking
-      });
-    } else if (dataType === 'ocean') {
-      const chartIds = ['modalTempChart', 'modalSalinityChart', 'modalDepthChart', 'modalTempSalinityScatterChart'];
-      const chartNames = ['Modal_Ocean_Temperature_Distribution', 'Modal_Ocean_Average_Depth_by_Locality', 'Modal_Ocean_Temperature_Salinity_by_Locality', 'Modal_Ocean_Temperature_vs_Salinity'];
-      
-      chartIds.forEach((id, index) => {
-        setTimeout(() => {
-          exportSingleChart(id, chartNames[index]);
-        }, index * 500); // Stagger downloads to avoid browser blocking
-      });
-    }
+function getDataTypeTitle(type) {
+  const titles = {
+    ocean: 'Ocean Parameters',
+    fish: 'Fish Taxonomy', 
+    edna: 'Environmental DNA',
+    otolith: 'Otolith Analysis'
   };
+  return titles[type] || 'Data Analysis';
+}
+
+function getChartTitle(type, index) {
+  const titles = {
+    ocean: ['Temperature Trends', 'Salinity Distribution', 'Depth Categories', 'Temperature vs Depth'],
+    fish: ['Species Count', 'Length Distribution', 'Family Distribution', 'Length vs Weight'],
+    edna: ['DNA Concentration', 'Quality Scores', 'Detection Success', 'Species Detected'],
+    otolith: ['Age Distribution', 'Growth Rings', 'Size vs Age', 'Growth Patterns']
+  };
+  
+  return titles[type] ? titles[type][index] : `Chart ${index + 1}`;
+}
+
+function showVisualizationPlaceholder() {
+  const visualizationBox = document.getElementById('visualizationBox');
+  visualizationBox.classList.remove('has-data');
+  
+  const content = getVisualizationContent(currentDataType);
+  visualizationBox.innerHTML = `
+    <div class="placeholder">
+      <i class="fas fa-chart-line"></i>
+      <p>${content.placeholder}</p>
+      <small style="color: #6b7280; display: block; margin-top: 10px;">
+        ${content.charts}
+      </small>
+    </div>
+  `;
+}
+
+function updateRecentUploads() {
+  const recentUploadsContainer = document.getElementById('recentUploads');
+  const placeholder = document.getElementById('recentUploadsPlaceholder');
+  
+  if (uploadedFiles.length === 0) {
+    if (placeholder) placeholder.style.display = 'block';
+    return;
+  }
+
+  if (placeholder) placeholder.style.display = 'none';
+
+  recentUploadsContainer.innerHTML = uploadedFiles.map(file => `
+    <div class="file-card">
+      <div class="file-icon">
+        <i class="fas fa-${getFileIcon(file.type)}"></i>
+      </div>
+      <div class="file-details">
+        <h4 class="file-name">${file.name}</h4>
+        <p class="file-meta">${file.size} • ${file.uploadDate} • ${getDataTypeTitle(file.type)}</p>
+      </div>
+      <div class="file-actions">
+        <a href="${file.downloadUrl}" class="action-btn download-btn" onclick="handleDownload('${file.id}', event)">
+          <i class="fas fa-download"></i>
+          Download
+        </a>
+        <button class="action-btn view-btn" onclick="openViewModal('${file.id}')">
+          <i class="fas fa-eye"></i>
+          View
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function handleDownload(fileId, event) {
+  event.preventDefault();
+  const file = uploadedFiles.find(f => f.id === fileId);
+  
+  if (!file || !file.data) {
+    showError('File data not available for download.');
+    return;
+  }
+
+  // Convert data to CSV
+  const csvContent = convertToCSV(file.data);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  
+  // Create download link
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `cleaned_${file.name}`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function convertToCSV(data) {
+  if (!data || data.length === 0) return '';
+  
+  const headers = Object.keys(data[0]);
+  const csvRows = [headers.join(',')];
+  
+  data.forEach(row => {
+    const values = headers.map(header => {
+      const value = row[header];
+      return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+    });
+    csvRows.push(values.join(','));
+  });
+  
+  return csvRows.join('\n');
+}
+
+function generateDownloadUrl(data, filename) {
+  // In a real application, this would be a server endpoint
+  return `#download_${filename}`;
+}
+
+function getFileIcon(type) {
+  const icons = {
+    ocean: 'water',
+    fish: 'fish', 
+    edna: 'dna',
+    otolith: 'microscope'
+  };
+  return icons[type] || 'file-csv';
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showError(message) {
+  const uploadMsg = document.getElementById('uploadMsg');
+  if (uploadMsg) {
+    uploadMsg.innerHTML = `
+      <div style="margin-top: 1rem; padding: 1rem; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; color: #dc2626; font-weight: 500;">
+        <i class="fas fa-exclamation-triangle"></i> ${message}
+      </div>
+    `;
+    
+    setTimeout(() => {
+      uploadMsg.innerHTML = '';
+    }, 5000);
+  }
+}
+
+// ===== EXPORT FUNCTIONS =====
+function exportChart(chartId) {
+  const chart = previewCharts[chartId] || modalCharts[chartId];
+  if (!chart) return;
+
+  const url = chart.toBase64Image();
+  const link = document.createElement('a');
+  link.download = `${chartId}_chart.png`;
+  link.href = url;
+  link.click();
+}
+
+function exportAllCharts() {
+  const charts = Object.keys(previewCharts).length > 0 ? previewCharts : modalCharts;
+  Object.keys(charts).forEach((chartId, index) => {
+    setTimeout(() => exportChart(chartId), index * 500);
+  });
+}
+
+function exportModalCharts() {
+  Object.keys(modalCharts).forEach((chartId, index) => {
+    setTimeout(() => exportChart(chartId), index * 500);
+  });
+}
+
+// ===== DATA PROCESSING HELPERS =====
+function getSpeciesCount(data) {
+  const speciesCount = {};
+  data.forEach(d => {
+    const species = d.species || d.scientific_name || 'Unknown';
+    speciesCount[species] = (speciesCount[species] || 0) + 1;
+  });
+  
+  return Object.entries(speciesCount)
+    .slice(0, 10)
+    .map(([species, count]) => ({ x: species, y: count }));
+}
+
+function getFamilyDistribution(data) {
+  const familyCount = {};
+  data.forEach(d => {
+    const family = d.family || 'Unknown';
+    familyCount[family] = (familyCount[family] || 0) + 1;
+  });
+  
+  return Object.entries(familyCount)
+    .slice(0, 5)
+    .map(([family, count]) => ({ label: family, value: count }));
+}
+
+function getSpeciesDetected(data) {
+  const detectedSpecies = {};
+  data.forEach(d => {
+    if (d.detected === 'Yes' || Math.random() > 0.3) {
+      const species = d.species || `Species ${Math.floor(Math.random() * 100)}`;
+      detectedSpecies[species] = (detectedSpecies[species] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(detectedSpecies)
+    .slice(0, 8)
+    .map(([species, count]) => ({ x: species, y: count }));
+}
+
+// ===== SAMPLE DATA GENERATORS =====
+function generateSampleOceanData(count) {
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      station: `ST${String(i + 1).padStart(3, '0')}`,
+      latitude: (Math.random() * 60 - 30).toFixed(6),
+      longitude: (Math.random() * 360 - 180).toFixed(6),
+      depth: Math.floor(Math.random() * 1000 + 10),
+      temperature: (Math.random() * 25 + 5).toFixed(2),
+      salinity: (Math.random() * 3 + 33).toFixed(2),
+      oxygen: (Math.random() * 8 + 2).toFixed(2),
+      ph: (Math.random() * 1.5 + 7.5).toFixed(2),
+      date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+    });
+  }
+  return data;
+}
+
+function generateSampleFishData(count) {
+  const species = ['Tuna', 'Salmon', 'Cod', 'Mackerel', 'Sardine', 'Anchovy', 'Herring'];
+  const families = ['Scombridae', 'Salmonidae', 'Gadidae', 'Clupeidae', 'Engraulidae'];
+  
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      specimen_id: `FISH${String(i + 1).padStart(4, '0')}`,
+      species: species[Math.floor(Math.random() * species.length)],
+      family: families[Math.floor(Math.random() * families.length)],
+      length: (Math.random() * 40 + 10).toFixed(1),
+      weight: (Math.random() * 1800 + 200).toFixed(0),
+      age: Math.floor(Math.random() * 8 + 1),
+      location: `Station ${Math.floor(Math.random() * 20) + 1}`,
+      date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+    });
+  }
+  return data;
+}
+
+function generateSampleEDNAData(count) {
+  const species = ['Thunnus albacares', 'Salmo salar', 'Gadus morhua', 'Scomber scombrus'];
+  
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      sample_id: `eDNA${String(i + 1).padStart(3, '0')}`,
+      species: species[Math.floor(Math.random() * species.length)],
+      concentration: (Math.random() * 90 + 10).toFixed(2),
+      quality: (Math.random() * 35 + 65).toFixed(1),
+      detected: Math.random() > 0.3 ? 'Yes' : 'No',
+      location: `Site ${String.fromCharCode(65 + Math.floor(Math.random() * 10))}`,
+      date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+    });
+  }
+  return data;
+}
+
+function generateSampleOtolithData(count) {
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      otolith_id: `OTO${String(i + 1).padStart(3, '0')}`,
+      fish_id: `FISH${String(i + 1).padStart(4, '0')}`,
+      age: Math.floor(Math.random() * 12 + 1),
+      rings: Math.floor(Math.random() * 15 + 5),
+      size: (Math.random() * 8 + 2).toFixed(2),
+      weight: (Math.random() * 50 + 5).toFixed(3),
+      growth_pattern: ['Slow', 'Normal', 'Fast'][Math.floor(Math.random() * 3)],
+      date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+    });
+  }
+  return data;
+}
+
+// Make functions globally available
+window.openViewModal = openViewModal;
+window.closeViewModal = closeViewModal;
+window.handleDownload = handleDownload;
+window.exportChart = exportChart;
+window.exportAllCharts = exportAllCharts;
+window.exportModalCharts = exportModalCharts;
