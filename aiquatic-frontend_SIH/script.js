@@ -1172,7 +1172,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { upload, data } = result;
       modalTitle.textContent = `${upload.originalFilename} - Data Visualization`;
       
-      // Create charts container based on data type
+      // Create charts container with updated instant preview charts and map
       const isFishData = upload.dataType === 'fish';
       modalBody.innerHTML = `
         <div class="modal-charts-container">
@@ -1207,8 +1207,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-chart-bar"></i> Population Quantities</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalPopulationChart', 'Modal_Fish_Population_Quantities')" title="Export Chart">
+                  <h5><i class="fas fa-chart-bar"></i> Population by Species</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalPopulationChart', 'Modal_Fish_Population_by_Species')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
@@ -1216,8 +1216,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-project-diagram"></i> Organism Diversity</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalDiversityChart', 'Modal_Fish_Organism_Diversity')" title="Export Chart">
+                  <h5><i class="fas fa-chart-scatter"></i> Family vs Quantity Distribution</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalDiversityChart', 'Modal_Fish_Family_Quantity_Distribution')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
@@ -1226,17 +1226,26 @@ document.addEventListener("DOMContentLoaded", () => {
             ` : `
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution (°C)</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempDistChart', 'Modal_Ocean_Temperature_Distribution')" title="Export Chart">
+                  <h5><i class="fas fa-thermometer-half"></i> Temperature Distribution</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempChart', 'Modal_Ocean_Temperature_Distribution')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
-                <canvas id="modalTempDistChart"></canvas>
+                <canvas id="modalTempChart"></canvas>
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-ruler-vertical"></i> Average Depth by Locality</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalDepthChart', 'Modal_Ocean_Average_Depth_by_Locality')" title="Export Chart">
+                  <h5><i class="fas fa-tint"></i> Salinity Distribution</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalSalinityChart', 'Modal_Ocean_Salinity_Distribution')" title="Export Chart">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+                <canvas id="modalSalinityChart"></canvas>
+              </div>
+              <div class="modal-chart-container">
+                <div class="chart-header">
+                  <h5><i class="fas fa-thermometer-half"></i> Average Temperature & Salinity by Locality</h5>
+                  <button class="chart-export-btn" onclick="exportSingleChart('modalDepthChart', 'Modal_Temperature_Salinity_by_Locality')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
                 </div>
@@ -1244,16 +1253,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="modal-chart-container">
                 <div class="chart-header">
-                  <h5><i class="fas fa-thermometer-half"></i> Average Temperature & Salinity by Locality</h5>
-                  <button class="chart-export-btn" onclick="exportSingleChart('modalTempSalinityChart', 'Modal_Temperature_Salinity_by_Locality')" title="Export Chart">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-                <canvas id="modalTempSalinityChart"></canvas>
-              </div>
-              <div class="modal-chart-container">
-                <div class="chart-header">
-                  <h5><i class="fas fa-chart-scatter"></i> Temperature vs Salinity</h5>
+                  <h5><i class="fas fa-chart-scatter"></i> Temperature vs Salinity Scatter</h5>
                   <button class="chart-export-btn" onclick="exportSingleChart('modalTempSalinityScatterChart', 'Modal_Ocean_Temperature_vs_Salinity')" title="Export Chart">
                     <i class="fas fa-download"></i>
                   </button>
@@ -1262,6 +1262,13 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             `}
           </div>
+          <!-- Modal Leaflet Map Section -->
+          <div class="modal-map-section">
+            <div class="modal-map-header">
+              <h5><i class="fas fa-map-marked-alt"></i> Data Locations</h5>
+            </div>
+            <div id="modalMap" class="modal-map"></div>
+          </div>
         </div>
       `;
       
@@ -1269,8 +1276,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isFishData) {
         renderModalFishCharts(data);
       } else {
-        renderModalCharts(data);
+        renderModalOceanCharts(data);
       }
+      
+      // Initialize modal map
+      setTimeout(() => {
+        initializeModalMap(data, upload.dataType);
+      }, 500);
       
     } catch (error) {
       console.error('Modal error:', error);
@@ -1299,6 +1311,12 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Destroy modal charts
     destroyModalCharts();
+    
+    // Destroy modal map
+    if (modalMap) {
+      modalMap.remove();
+      modalMap = null;
+    }
   };
   
   // Modal chart instances
@@ -1316,76 +1334,302 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     };
 
-    // Extract fish data fields for modal
-    const families = data.map((d) => getFieldValue(d, ["Family", "family"])).filter((f) => f !== null);
-    const classes = data.map((d) => getFieldValue(d, ["Class", "class"])).filter((c) => c !== null);
-    const quantities = data.map((d) => {
-      const qty = getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"]);
-      return qty ? parseFloat(qty) : null;
-    }).filter((q) => q !== null && !isNaN(q));
-    const species = data.map((d) => getFieldValue(d, ["Species", "species", "scientificName", "scientific_name"])).filter((s) => s !== null);
-
-    // Modal Family Distribution Chart
+    // 1. Family Distribution (Doughnut Chart)
     const familyCtx = document.getElementById("modalFamilyChart");
-    if (familyCtx && families.length > 0) {
-      const familyCounts = {};
-      families.forEach(family => {
-        familyCounts[family] = (familyCounts[family] || 0) + 1;
-      });
-      const topFamilies = Object.entries(familyCounts).sort(([,a], [,b]) => b - a).slice(0, 8);
-      modalCharts.push(new Chart(familyCtx, {
-        type: "doughnut",
-        data: {
-          labels: topFamilies.map(([family]) => family),
-          datasets: [{
-            data: topFamilies.map(([, count]) => count),
-            backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06d6a0", "#f72585", "#4cc9f0"],
-            borderWidth: 2, borderColor: "#ffffff"
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
-      }));
+    if (familyCtx && data.length > 0) {
+      const families = data
+        .map((d) => getFieldValue(d, ["Family", "family"]))
+        .filter((f) => f !== null);
+
+      if (families.length > 0) {
+        const familyCounts = {};
+        families.forEach((family) => {
+          familyCounts[family] = (familyCounts[family] || 0) + 1;
+        });
+
+        const topFamilies = Object.entries(familyCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10);
+
+        modalCharts.push(
+          new Chart(familyCtx, {
+            type: "doughnut",
+            data: {
+              labels: topFamilies.map(([family]) => family),
+              datasets: [
+                {
+                  data: topFamilies.map(([, count]) => count),
+                  backgroundColor: [
+                    "#10b981", "#3b82f6", "#f59e0b", "#ef4444", 
+                    "#8b5cf6", "#06d6a0", "#f72585", "#4cc9f0",
+                    "#fb7185", "#34d399"
+                  ],
+                  borderWidth: 3,
+                  borderColor: "#ffffff",
+                  hoverBorderWidth: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: {
+                    padding: 15,
+                    usePointStyle: true,
+                    font: { size: 12, weight: "500" },
+                  },
+                },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  titleColor: "#ffffff",
+                  bodyColor: "#ffffff",
+                  callbacks: {
+                    title: function (context) {
+                      return `🐟 ${context[0].label}`;
+                    },
+                    label: function (context) {
+                      const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                      const percentage = ((context.parsed / total) * 100).toFixed(1);
+                      return `Count: ${context.parsed} (${percentage}%)`;
+                    },
+                  },
+                },
+              },
+            },
+          })
+        );
+      }
     }
 
-    // Modal Taxonomic Groups Chart
+    // 2. Species by Taxonomic Groups (Bar Chart)
     const taxonomyCtx = document.getElementById("modalTaxonomyChart");
-    if (taxonomyCtx && classes.length > 0) {
-      const classCounts = {};
-      classes.forEach(cls => { classCounts[cls] = (classCounts[cls] || 0) + 1; });
-      modalCharts.push(new Chart(taxonomyCtx, {
-        type: "bar",
-        data: {
-          labels: Object.keys(classCounts).slice(0, 10),
-          datasets: [{ label: "Species Count by Class", data: Object.values(classCounts).slice(0, 10), backgroundColor: "rgba(59,130,246,0.7)", borderColor: "#3b82f6", borderWidth: 1 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: "Count" } } } }
-      }));
+    if (taxonomyCtx && data.length > 0) {
+      const classes = data
+        .map((d) => getFieldValue(d, ["Class", "class"]))
+        .filter((c) => c !== null);
+
+      if (classes.length > 0) {
+        const classCounts = {};
+        classes.forEach((cls) => {
+          classCounts[cls] = (classCounts[cls] || 0) + 1;
+        });
+
+        modalCharts.push(
+          new Chart(taxonomyCtx, {
+            type: "bar",
+            data: {
+              labels: Object.keys(classCounts).slice(0, 15),
+              datasets: [
+                {
+                  label: "Species Count",
+                  data: Object.values(classCounts).slice(0, 15),
+                  backgroundColor: "rgba(59, 130, 246, 0.8)",
+                  borderColor: "rgba(59, 130, 246, 1)",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  callbacks: {
+                    title: function (context) {
+                      return `🏷️ ${context[0].label}`;
+                    },
+                    label: function (context) {
+                      return `Species Count: ${context.parsed.y}`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: { display: true, text: "Taxonomic Class", font: { weight: "bold" } },
+                  ticks: { maxRotation: 45, font: { weight: "bold" } },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Number of Species", font: { weight: "bold" } },
+                  ticks: { font: { weight: "bold" } },
+                },
+              },
+            },
+          })
+        );
+      }
     }
 
-    // Modal Population Chart
+    // 3. Population by Species (Bar Chart) 
     const populationCtx = document.getElementById("modalPopulationChart");
-    if (populationCtx && quantities.length > 0) {
-      const labels = data.filter((d, index) => quantities[index] !== undefined).map((d, index) => d.eventID || `Record_${index + 1}`).slice(0, 15);
-      modalCharts.push(new Chart(populationCtx, {
-        type: "line",
-        data: { labels: labels, datasets: [{ label: "Organism Quantity", data: quantities.slice(0, 15), borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", fill: true, tension: 0.4 }] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: "Quantity" } } } }
-      }));
+    if (populationCtx && data.length > 0) {
+      const speciesData = {};
+      
+      data.forEach((d) => {
+        const species = getFieldValue(d, ["Species", "species", "scientificName", "scientific_name"]);
+        const quantity = parseFloat(
+          getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"])
+        ) || 1;
+        
+        if (species && !isNaN(quantity)) {
+          speciesData[species] = (speciesData[species] || 0) + quantity;
+        }
+      });
+
+      const topSpecies = Object.entries(speciesData)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 15);
+
+      if (topSpecies.length > 0) {
+        modalCharts.push(
+          new Chart(populationCtx, {
+            type: "bar",
+            data: {
+              labels: topSpecies.map(([species]) => 
+                species.length > 20 ? species.substring(0, 20) + "..." : species
+              ),
+              datasets: [
+                {
+                  label: "Total Quantity",
+                  data: topSpecies.map(([, quantity]) => quantity),
+                  backgroundColor: "rgba(16, 185, 129, 0.8)",
+                  borderColor: "rgba(16, 185, 129, 1)",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  callbacks: {
+                    title: function (context) {
+                      return `🐠 ${topSpecies[context[0].dataIndex][0]}`;
+                    },
+                    label: function (context) {
+                      return `Total Quantity: ${context.parsed.y}`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: { display: true, text: "Species", font: { weight: "bold" } },
+                  ticks: { maxRotation: 45, font: { size: 10, weight: "bold" } },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Total Quantity", font: { weight: "bold" } },
+                  ticks: { font: { weight: "bold" } },
+                },
+              },
+            },
+          })
+        );
+      }
     }
 
-    // Modal Diversity Chart
+    // 4. Family vs Quantity Distribution (Scatter Chart)
     const diversityCtx = document.getElementById("modalDiversityChart");
-    if (diversityCtx && species.length > 0) {
-      const diversityData = data.slice(0, 50).map((d, index) => ({ x: index + 1, y: getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"]) || 0 }));
-      modalCharts.push(new Chart(diversityCtx, {
-        type: "scatter",
-        data: { datasets: [{ label: "Organism Distribution", data: diversityData, backgroundColor: "rgba(139,92,246,0.7)" }] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "linear", position: "bottom", title: { display: true, text: "Record Number" } }, y: { title: { display: true, text: "Organism Quantity" } } } }
-      }));
+    if (diversityCtx && data.length > 0) {
+      const scatterData = [];
+      const familyColors = {};
+      const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06d6a0", "#f72585"];
+      let colorIndex = 0;
+
+      data.forEach((d, index) => {
+        const family = getFieldValue(d, ["Family", "family"]);
+        const quantity = parseFloat(
+          getFieldValue(d, ["organismQuantity", "organism_quantity", "quantity", "count"])
+        ) || 1;
+
+        if (family && !isNaN(quantity)) {
+          if (!familyColors[family]) {
+            familyColors[family] = colors[colorIndex % colors.length];
+            colorIndex++;
+          }
+          
+          scatterData.push({
+            x: index + 1,
+            y: quantity,
+            family: family,
+            backgroundColor: familyColors[family],
+          });
+        }
+      });
+
+      if (scatterData.length > 0) {
+        modalCharts.push(
+          new Chart(diversityCtx, {
+            type: "scatter",
+            data: {
+              datasets: [
+                {
+                  label: "Family Distribution",
+                  data: scatterData.slice(0, 100),
+                  backgroundColor: (ctx) => {
+                    return scatterData[ctx.dataIndex]?.backgroundColor || "#3b82f6";
+                  },
+                  borderColor: "#ffffff",
+                  borderWidth: 1,
+                  pointRadius: 5,
+                  pointHoverRadius: 8,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  callbacks: {
+                    title: function (context) {
+                      return `🐟 Record #${context[0].parsed.x}`;
+                    },
+                    label: function (context) {
+                      const dataPoint = scatterData[context.dataIndex];
+                      return [
+                        `Family: ${dataPoint?.family || "Unknown"}`,
+                        `Quantity: ${context.parsed.y}`,
+                      ];
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  type: "linear",
+                  position: "bottom",
+                  title: { display: true, text: "Record Number", font: { weight: "bold" } },
+                  ticks: { font: { weight: "bold" } },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "Organism Quantity", font: { weight: "bold" } },
+                  ticks: { font: { weight: "bold" } },
+                },
+              },
+            },
+          })
+        );
+      }
     }
   }
   
-  function renderModalCharts(data) {
+  function renderModalOceanCharts(data) {
     destroyModalCharts();
     
     const getFieldValue = (record, fieldNames) => {
@@ -1398,15 +1642,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     };
 
-    // 1. Temperature Distribution (°C) Chart
-    const tempDistCtx = document.getElementById("modalTempDistChart");
-    if (tempDistCtx && data.length > 0) {
+    // 1. Temperature Distribution (Bar Chart)
+    const tempCtx = document.getElementById("modalTempChart");
+    if (tempCtx && data.length > 0) {
       const temperatures = data
         .map((d) => getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]))
         .filter((t) => t !== null);
 
       if (temperatures.length > 0) {
-        // Create temperature ranges for histogram
         const ranges = [
           { label: "0-5°C", min: 0, max: 5, count: 0 },
           { label: "5-10°C", min: 5, max: 10, count: 0 },
@@ -1414,10 +1657,10 @@ document.addEventListener("DOMContentLoaded", () => {
           { label: "15-20°C", min: 15, max: 20, count: 0 },
           { label: "20-25°C", min: 20, max: 25, count: 0 },
           { label: "25-30°C", min: 25, max: 30, count: 0 },
-          { label: "30+°C", min: 30, max: 50, count: 0 }
+          { label: "30+°C", min: 30, max: 50, count: 0 },
         ];
 
-        temperatures.forEach(temp => {
+        temperatures.forEach((temp) => {
           for (let range of ranges) {
             if (temp >= range.min && temp < range.max) {
               range.count++;
@@ -1426,38 +1669,40 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
 
-        const labels = ranges.map(r => r.label);
-        const counts = ranges.map(r => r.count);
+        const labels = ranges.map((r) => r.label);
+        const counts = ranges.map((r) => r.count);
 
         modalCharts.push(
-          new Chart(tempDistCtx, {
+          new Chart(tempCtx, {
             type: "bar",
             data: {
               labels: labels,
-              datasets: [{
-                label: "Temperature Distribution",
-                data: counts,
-                backgroundColor: [
-                  "rgba(59, 130, 246, 0.8)",   // Blue
-                  "rgba(16, 185, 129, 0.8)",   // Emerald  
-                  "rgba(245, 158, 11, 0.8)",   // Amber
-                  "rgba(239, 68, 68, 0.8)",    // Red
-                  "rgba(139, 92, 246, 0.8)",   // Violet
-                  "rgba(236, 72, 153, 0.8)",   // Pink
-                  "rgba(251, 146, 60, 0.8)"    // Orange
-                ],
-                borderColor: [
-                  "rgba(59, 130, 246, 1)",
-                  "rgba(16, 185, 129, 1)",
-                  "rgba(245, 158, 11, 1)",
-                  "rgba(239, 68, 68, 1)",
-                  "rgba(139, 92, 246, 1)",
-                  "rgba(236, 72, 153, 1)",
-                  "rgba(251, 146, 60, 1)"
-                ],
-                borderWidth: 2,
-                borderRadius: 6
-              }]
+              datasets: [
+                {
+                  label: "Temperature Distribution",
+                  data: counts,
+                  backgroundColor: [
+                    "rgba(59, 130, 246, 0.8)",
+                    "rgba(16, 185, 129, 0.8)",
+                    "rgba(245, 158, 11, 0.8)",
+                    "rgba(239, 68, 68, 0.8)",
+                    "rgba(139, 92, 246, 0.8)",
+                    "rgba(236, 72, 153, 0.8)",
+                    "rgba(251, 146, 60, 0.8)",
+                  ],
+                  borderColor: [
+                    "rgba(59, 130, 246, 1)",
+                    "rgba(16, 185, 129, 1)",
+                    "rgba(245, 158, 11, 1)",
+                    "rgba(239, 68, 68, 1)",
+                    "rgba(139, 92, 246, 1)",
+                    "rgba(236, 72, 153, 1)",
+                    "rgba(251, 146, 60, 1)",
+                  ],
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
             },
             options: {
               responsive: true,
@@ -1465,185 +1710,197 @@ document.addEventListener("DOMContentLoaded", () => {
               plugins: {
                 legend: { display: false },
                 tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
                   callbacks: {
-                    title: function(context) {
+                    title: function (context) {
                       return `🌡️ ${context[0].label}`;
                     },
-                    label: function(context) {
+                    label: function (context) {
                       return `Count: ${context.parsed.y} records`;
-                    }
-                  }
-                }
+                    },
+                  },
+                },
               },
               scales: {
                 x: {
-                  title: { display: true, text: "Temperature Range (°C)", font: { weight: 'bold' } },
-                  ticks: { font: { weight: 'bold' } }
+                  title: {
+                    display: true,
+                    text: "Temperature Range (°C)",
+                    font: { weight: "bold" },
+                  },
+                  ticks: { font: { weight: "bold" } },
                 },
                 y: {
                   beginAtZero: true,
-                  title: { display: true, text: "Number of Records", font: { weight: 'bold' } },
-                  ticks: { font: { weight: 'bold' } }
-                }
-              }
-            }
+                  title: {
+                    display: true,
+                    text: "Number of Records",
+                    font: { weight: "bold" },
+                  },
+                  ticks: { font: { weight: "bold" } },
+                },
+              },
+            },
           })
         );
       }
     }
 
-    // 2. Average Depth by Locality Chart
+    // 2. Salinity Distribution (Bar Chart)
+    const salinityCtx = document.getElementById("modalSalinityChart");
+    if (salinityCtx && data.length > 0) {
+      const salinities = data
+        .map((d) => getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]))
+        .filter((s) => s !== null);
+
+      if (salinities.length > 0) {
+        const ranges = [
+          { label: "0-20 PSU", min: 0, max: 20, count: 0 },
+          { label: "20-25 PSU", min: 20, max: 25, count: 0 },
+          { label: "25-30 PSU", min: 25, max: 30, count: 0 },
+          { label: "30-35 PSU", min: 30, max: 35, count: 0 },
+          { label: "35-40 PSU", min: 35, max: 40, count: 0 },
+          { label: "40+ PSU", min: 40, max: 50, count: 0 },
+        ];
+
+        salinities.forEach((salinity) => {
+          for (let range of ranges) {
+            if (salinity >= range.min && salinity < range.max) {
+              range.count++;
+              break;
+            }
+          }
+        });
+
+        const labels = ranges.map((r) => r.label);
+        const counts = ranges.map((r) => r.count);
+
+        modalCharts.push(
+          new Chart(salinityCtx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Salinity Distribution",
+                  data: counts,
+                  backgroundColor: "rgba(16, 185, 129, 0.8)",
+                  borderColor: "rgba(16, 185, 129, 1)",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  callbacks: {
+                    title: function (context) {
+                      return `🧂 ${context[0].label}`;
+                    },
+                    label: function (context) {
+                      return `Count: ${context.parsed.y} records`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Salinity Range (PSU)",
+                    font: { weight: "bold" },
+                  },
+                  ticks: { font: { weight: "bold" } },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "Number of Records",
+                    font: { weight: "bold" },
+                  },
+                  ticks: { font: { weight: "bold" } },
+                },
+              },
+            },
+          })
+        );
+      }
+    }
+
+    // 3. Average Temperature & Salinity by Locality (Dual Bar Chart)
     const depthCtx = document.getElementById("modalDepthChart");
     if (depthCtx && data.length > 0) {
-      const localityDepthMap = {};
+      const localityDataMap = {};
       
-      data.forEach(d => {
-        const locality = d.locality || d.Locality || d.location || 'Unknown';
-        const depth = getFieldValue(d, ["Depth in meter", "DepthInMeters", "Depth", "depth"]);
+      data.forEach((record) => {
+        const locality = record.locality || record.Locality || "Unknown";
+        const temperature = getFieldValue(record, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+        const salinity = getFieldValue(record, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
         
-        if (depth !== null) {
-          if (!localityDepthMap[locality]) {
-            localityDepthMap[locality] = { totalDepth: 0, count: 0 };
-          }
-          localityDepthMap[locality].totalDepth += depth;
-          localityDepthMap[locality].count += 1;
+        if (!localityDataMap[locality]) {
+          localityDataMap[locality] = { 
+            tempSum: 0, tempCount: 0, 
+            salinitySum: 0, salinityCount: 0 
+          };
+        }
+        
+        if (temperature !== null) {
+          localityDataMap[locality].tempSum += temperature;
+          localityDataMap[locality].tempCount += 1;
+        }
+        
+        if (salinity !== null) {
+          localityDataMap[locality].salinitySum += salinity;
+          localityDataMap[locality].salinityCount += 1;
         }
       });
-
-      const localityLabels = [];
-      const averageDepths = [];
-
-      // Sort localities by average depth and take top 30
-      const sortedLocalities = Object.entries(localityDepthMap)
+      
+      const processedData = Object.entries(localityDataMap)
+        .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
         .map(([locality, data]) => ({
           locality,
-          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
+          avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
+          avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
         }))
-        .sort((a, b) => b.avgDepth - a.avgDepth)
-        .slice(0, 30); // Limit to top 30
+        .sort((a, b) => b.avgTemp - a.avgTemp)
+        .slice(0, 30);
 
-      sortedLocalities.forEach(item => {
-        localityLabels.push(item.locality);
-        averageDepths.push(item.avgDepth);
-      });
+      if (processedData.length > 0) {
+        const localities = processedData.map(item => item.locality);
+        const avgTemperatures = processedData.map(item => item.avgTemp);
+        const avgSalinities = processedData.map(item => item.avgSalinity);
 
-      if (localityLabels.length > 0) {
         modalCharts.push(
           new Chart(depthCtx, {
             type: "bar",
             data: {
-              labels: localityLabels,
-              datasets: [{
-                label: "Average Depth",
-                data: averageDepths,
-                backgroundColor: "rgba(59, 130, 246, 0.8)",
-                borderColor: "rgba(59, 130, 246, 1)",
-                borderWidth: 2,
-                borderRadius: 6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  callbacks: {
-                    title: function(context) {
-                      return `📍 ${context[0].label}`;
-                    },
-                    label: function(context) {
-                      return `🌊 Average Depth: ${context.parsed.y}m`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  title: { display: true, text: "Locality", font: { weight: 'bold' } },
-                  ticks: { maxRotation: 45, font: { weight: 'bold' } }
-                },
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: "Average Depth (meters)", font: { weight: 'bold' } },
-                  ticks: { 
-                    font: { weight: 'bold' },
-                    callback: function(value) {
-                      return value + 'm';
-                    }
-                  }
-                }
-              }
-            }
-          })
-        );
-      }
-    }
-
-    // 3. Average Temperature & Salinity by Locality Chart
-    const tempSalinityCtx = document.getElementById("modalTempSalinityChart");
-    if (tempSalinityCtx && data.length > 0) {
-      const localityData = {};
-      
-      data.forEach(d => {
-        const locality = d.locality || d.Locality || d.location || 'Unknown';
-        const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
-        const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
-        
-        if (!localityData[locality]) {
-          localityData[locality] = { temps: [], salinities: [] };
-        }
-        if (temp !== null) localityData[locality].temps.push(temp);
-        if (salinity !== null) localityData[locality].salinities.push(salinity);
-      });
-
-      // Process and sort localities, then take top 30
-      const processedData = Object.keys(localityData)
-        .filter(loc => localityData[loc].temps.length > 0 && localityData[loc].salinities.length > 0)
-        .map(loc => {
-          const temps = localityData[loc].temps;
-          const salinities = localityData[loc].salinities;
-          return {
-            locality: loc,
-            avgTemp: Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 100) / 100,
-            avgSalinity: Math.round((salinities.reduce((a, b) => a + b, 0) / salinities.length) * 100) / 100
-          };
-        })
-        .sort((a, b) => b.avgTemp - a.avgTemp) // Sort by temperature
-        .slice(0, 30); // Limit to top 30
-
-      if (processedData.length > 0) {
-        const localities = processedData.map(item => item.locality);
-        const avgTemps = processedData.map(item => item.avgTemp);
-        const avgSalinities = processedData.map(item => item.avgSalinity);
-
-        modalCharts.push(
-          new Chart(tempSalinityCtx, {
-            type: 'bar',
-            data: {
               labels: localities,
               datasets: [
                 {
-                  label: 'Average Temperature (°C)',
-                  data: avgTemps,
-                  backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                  borderColor: 'rgba(239, 68, 68, 1)',
+                  label: "temperature_C",
+                  data: avgTemperatures,
+                  backgroundColor: "rgba(239, 68, 68, 0.7)",
+                  borderColor: "rgba(239, 68, 68, 1)",
                   borderWidth: 2,
-                  yAxisID: 'y',
-                  borderRadius: 6
+                  borderRadius: 4,
+                  yAxisID: 'y'
                 },
                 {
-                  label: 'Average Salinity (ppt)',
+                  label: "Salinity",
                   data: avgSalinities,
-                  backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                  borderColor: 'rgba(16, 185, 129, 1)',
+                  backgroundColor: "rgba(59, 130, 246, 0.7)",
+                  borderColor: "rgba(59, 130, 246, 1)",
                   borderWidth: 2,
-                  yAxisID: 'y1',
-                  borderRadius: 6
+                  borderRadius: 4,
+                  yAxisID: 'y1'
                 }
-              ]
+              ],
             },
             options: {
               responsive: true,
@@ -1708,6 +1965,102 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
     }
+
+    // 4. Temperature vs Salinity Scatter Chart  
+    const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
+    if (tempSalinityScatterCtx && data.length > 0) {
+      const scatterData = data
+        .map((d) => {
+          const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+          const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
+          
+          return {
+            x: temp,
+            y: salinity,
+            backgroundColor: temp !== null ? 
+              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
+              'rgba(99, 102, 241, 0.7)'
+          };
+        })
+        .filter((d) => d.x !== null && d.y !== null)
+        .slice(0, 150);
+        
+      if (scatterData.length > 0) {
+        modalCharts.push(
+          new Chart(tempSalinityScatterCtx, {
+            type: "scatter",
+            data: {
+              datasets: [{
+                label: "Temperature vs Salinity",
+                data: scatterData,
+                backgroundColor: scatterData.map(d => d.backgroundColor),
+                borderColor: 'rgba(59, 130, 246, 0.8)',
+                borderWidth: 1,
+                pointRadius: 6,
+                pointHoverRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    font: { size: 12, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleFont: { size: 14, weight: 'bold' },
+                  bodyFont: { size: 12 },
+                  padding: 12,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label: function(context) {
+                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  type: "linear",
+                  position: "bottom",
+                  title: { 
+                    display: true, 
+                    text: "Temperature (°C)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                },
+                y: { 
+                  title: { 
+                    display: true, 
+                    text: "Salinity (ppt)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                }
+              }
+            }
+          })
+        );
+      }
+    }
+  }
 
     // 4. Temperature vs Salinity Scatter Chart  
     const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
@@ -1810,6 +2163,129 @@ document.addEventListener("DOMContentLoaded", () => {
   function destroyModalCharts() {
     modalCharts.forEach((chart) => chart.destroy());
     modalCharts = [];
+  }
+
+  // --- Modal Map Functions ---
+  let modalMap = null;
+
+  function initializeModalMap(data, dataType) {
+    // Destroy existing modal map if it exists
+    if (modalMap) {
+      modalMap.remove();
+      modalMap = null;
+    }
+
+    // Wait for the DOM element to be ready
+    setTimeout(() => {
+      const mapContainer = document.getElementById('modalMap');
+      if (!mapContainer) return;
+
+      // Initialize modal map
+      modalMap = L.map('modalMap').setView([20.0, 77.0], 5); // Center on India
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+      }).addTo(modalMap);
+
+      // Function to get field value with multiple possible field names
+      const getFieldValue = (record, fieldNames) => {
+        for (let field of fieldNames) {
+          if (record[field] !== undefined && record[field] !== null && record[field] !== '') {
+            return record[field];
+          }
+        }
+        return null;
+      };
+
+      // Add markers for each data point
+      let bounds = [];
+      
+      data.forEach((record, index) => {
+        // Get latitude and longitude
+        const lat = parseFloat(
+          getFieldValue(record, ['decimalLatitude', 'latitude', 'lat', 'Latitude'])
+        );
+        const lng = parseFloat(
+          getFieldValue(record, ['decimalLongitude', 'longitude', 'lng', 'lon', 'Longitude'])
+        );
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          bounds.push([lat, lng]);
+
+          // Use standard Leaflet marker icon
+          const customIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          });
+
+          // Create popup content based on data type
+          let popupContent = '';
+          if (dataType === 'fish') {
+            const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown Species';
+            const family = getFieldValue(record, ['Family', 'family']) || 'Unknown Family';
+            const quantity = getFieldValue(record, ['organismQuantity', 'organism_quantity', 'quantity', 'count']) || 'N/A';
+            const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
+            
+            popupContent = `
+              <div class="station-info">
+                <h4>🐠 ${species}</h4>
+                <div class="species">👨‍👩‍👧‍👦 Family: ${family}</div>
+                <div class="temp">📊 Quantity: ${quantity}</div>
+                <div class="date">📅 Date: ${date}</div>
+                <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
+                <div class="data-source">📊 Source: Uploaded Dataset</div>
+              </div>
+            `;
+          } else {
+            const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
+            const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
+            const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
+            const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
+            const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
+            
+            popupContent = `
+              <div class="station-info">
+                <h4>🌊 ${locality}</h4>
+                <div class="temp">🌡️ Temperature: ${temperature !== null ? temperature + '°C' : 'N/A'}</div>
+                <div class="salinity">🌊 Salinity: ${salinity !== null ? salinity + ' PSU' : 'N/A'}</div>
+                <div class="depth">📏 Depth: ${depth !== null ? depth + 'm' : 'N/A'}</div>
+                <div class="date">📅 Date: ${date}</div>
+                <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
+                <div class="data-source">📊 Source: Uploaded Dataset</div>
+              </div>
+            `;
+          }
+
+          // Add marker to modal map
+          L.marker([lat, lng], { icon: customIcon })
+            .addTo(modalMap)
+            .bindPopup(popupContent, {
+              className: 'custom-popup'
+            });
+        }
+      });
+
+      // Fit map to show all data points
+      if (bounds.length > 0) {
+        modalMap.fitBounds(bounds, { 
+          padding: [20, 20],
+          maxZoom: 10
+        });
+      }
+
+      // Invalidate size to ensure proper rendering
+      setTimeout(() => {
+        if (modalMap) {
+          modalMap.invalidateSize();
+        }
+      }, 100);
+    }, 200);
   }
 
   // Close modal when clicking outside
