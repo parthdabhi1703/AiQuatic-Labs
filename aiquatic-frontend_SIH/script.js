@@ -602,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const temperatures = oceanData
       .map((d) =>
-        getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"])
+        getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"])
       )
       .filter((t) => t !== null);
 
@@ -1854,42 +1854,88 @@ function initializePreviewMap(data, dataType) {
           }
         }
 
-        // Create custom icon
+        // Create custom marker icon with proper marker shape
         const customIcon = L.divIcon({
           className: 'custom-preview-marker',
-          html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
+          html: `<div class="marker-pin" style="background-color: ${markerColor};">
+                   <div class="marker-icon">
+                     ${dataType === 'fish' ? '<i class="fas fa-fish"></i>' : '<i class="fas fa-water"></i>'}
+                   </div>
+                 </div>`,
+          iconSize: [30, 40],
+          iconAnchor: [15, 40],
+          popupAnchor: [0, -40]
         });
 
         // Create popup content based on data type
         let popupContent = '';
         if (dataType === 'fish') {
-          const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown';
-          const family = getFieldValue(record, ['Family', 'family']) || 'Unknown';
+          const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown Species';
+          const family = getFieldValue(record, ['Family', 'family']) || 'Unknown Family';
           const quantity = getFieldValue(record, ['organismQuantity', 'organism_quantity', 'quantity', 'count']) || 'N/A';
+          const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
           
           popupContent = `
-            <div class="preview-map-popup">
-              <h4>🐠 ${species}</h4>
-              <div class="data-row"><i class="fas fa-sitemap"></i> Family: ${family}</div>
-              <div class="data-row"><i class="fas fa-hashtag"></i> Quantity: ${quantity}</div>
-              <div class="data-row"><i class="fas fa-map-marker-alt"></i> Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</div>
+            <div class="map-popup-container">
+              <div class="popup-header fish-header">
+                <i class="fas fa-fish"></i>
+                <h4>${species}</h4>
+              </div>
+              <div class="popup-body">
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-sitemap"></i> Family</span>
+                  <span class="data-value">${family}</span>
+                </div>
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-hashtag"></i> Quantity</span>
+                  <span class="data-value">${quantity}</span>
+                </div>
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-calendar-alt"></i> Date</span>
+                  <span class="data-value">${date}</span>
+                </div>
+                <div class="data-item coordinates">
+                  <span class="data-label"><i class="fas fa-map-marker-alt"></i> Location</span>
+                  <span class="data-value">${lat.toFixed(4)}°, ${lng.toFixed(4)}°</span>
+                </div>
+              </div>
             </div>
           `;
         } else {
-          const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown';
-          const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']) || 'N/A';
-          const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']) || 'N/A';
-          const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']) || 'N/A';
+          const locality = getFieldValue(record, ['locality', 'location', 'Location']) || 'Unknown Location';
+          const temperature = getFieldValue(record, ['Temperature (C)', 'temperature_C', 'Temperature', 'temp']);
+          const salinity = getFieldValue(record, ['Salinity(PSU)', 'sea_water_salinity', 'Salinity', 'psu']);
+          const depth = getFieldValue(record, ['Depth in meter', 'DepthInMeters', 'Depth', 'depth']);
+          const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
           
           popupContent = `
-            <div class="preview-map-popup">
-              <h4>🌊 ${locality}</h4>
-              <div class="data-row"><i class="fas fa-thermometer-half"></i> Temperature: ${temperature}°C</div>
-              <div class="data-row"><i class="fas fa-tint"></i> Salinity: ${salinity} PSU</div>
-              <div class="data-row"><i class="fas fa-ruler-vertical"></i> Depth: ${depth}m</div>
-              <div class="data-row"><i class="fas fa-map-marker-alt"></i> Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</div>
+            <div class="map-popup-container">
+              <div class="popup-header ocean-header">
+                <i class="fas fa-water"></i>
+                <h4>${locality}</h4>
+              </div>
+              <div class="popup-body">
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-thermometer-half"></i> Temperature</span>
+                  <span class="data-value">${temperature !== null ? temperature + '°C' : 'N/A'}</span>
+                </div>
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-tint"></i> Salinity</span>
+                  <span class="data-value">${salinity !== null ? salinity + ' PSU' : 'N/A'}</span>
+                </div>
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-ruler-vertical"></i> Depth</span>
+                  <span class="data-value">${depth !== null ? depth + 'm' : 'N/A'}</span>
+                </div>
+                <div class="data-item">
+                  <span class="data-label"><i class="fas fa-calendar-alt"></i> Date</span>
+                  <span class="data-value">${date}</span>
+                </div>
+                <div class="data-item coordinates">
+                  <span class="data-label"><i class="fas fa-map-marker-alt"></i> Location</span>
+                  <span class="data-value">${lat.toFixed(4)}°, ${lng.toFixed(4)}°</span>
+                </div>
+              </div>
             </div>
           `;
         }
@@ -1898,7 +1944,11 @@ function initializePreviewMap(data, dataType) {
         L.marker([lat, lng], { icon: customIcon })
           .addTo(previewMap)
           .bindPopup(popupContent, {
-            className: 'custom-popup'
+            className: 'enhanced-popup',
+            maxWidth: 300,
+            minWidth: 280,
+            closeButton: true,
+            autoPan: true
           });
       }
     });

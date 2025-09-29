@@ -1745,59 +1745,252 @@ body {
   margin-bottom: 0;
 }
 
-/* Custom Marker Styles */
+/* ===== ENHANCED MAP MARKER STYLES ===== */
 .custom-preview-marker {
   background: none !important;
   border: none !important;
+  box-shadow: none !important;
 }
 
-/* Custom Popup Styles */
-.leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+/* Marker Pin Styles */
+.marker-pin {
+  width: 30px;
+  height: 40px;
+  border-radius: 50% 50% 50% 0;
+  position: relative;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.leaflet-popup-content {
+.marker-pin:hover {
+  transform: rotate(-45deg) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.marker-pin::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.marker-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  color: white;
+  font-size: 12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== ENHANCED POPUP STYLES ===== */
+.enhanced-popup .leaflet-popup-content-wrapper {
+  background: white;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.enhanced-popup .leaflet-popup-content {
   margin: 0 !important;
   padding: 0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.custom-popup .leaflet-popup-content {
-  width: 280px !important;
+.enhanced-popup .leaflet-popup-tip {
+  background: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.preview-map-popup h4 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.enhanced-popup .leaflet-popup-close-button {
+  color: #64748b !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  padding: 8px 12px !important;
+  transition: all 0.2s ease;
 }
 
-.preview-map-popup .data-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 14px;
-  color: #4b5563;
+.enhanced-popup .leaflet-popup-close-button:hover {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-radius: 50%;
 }
 
-.preview-map-popup .data-row:last-child {
-  border-bottom: none;
-}
-
-.preview-map-popup .data-row i {
-  width: 16px;
-  color: #059669;
-  flex-shrink: 0;
-}
-
-.leaflet-popup-tip {
+/* Map Popup Container */
+.map-popup-container {
+  width: 300px;
   background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.popup-header {
+  padding: 1rem 1.25rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.popup-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.1;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><path d="M0,10 Q25,0 50,10 T100,10 V20 H0 Z" fill="white"/></svg>') repeat-x bottom;
+}
+
+.popup-header.fish-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.popup-header.ocean-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.popup-header i {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+.popup-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-body {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.data-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  transition: all 0.2s ease;
+}
+
+.data-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.data-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  margin: 0 -1.25rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  border-radius: 8px;
+}
+
+.data-item.coordinates {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+  margin: 0.5rem -1.25rem 0;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+}
+
+.data-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.data-label i {
+  color: #059669;
+  width: 16px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.data-value {
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: right;
+  max-width: 50%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Animation for popup appearance */
+.enhanced-popup .leaflet-popup-content-wrapper {
+  animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .map-popup-container {
+    width: 280px;
+  }
+  
+  .popup-header {
+    padding: 0.875rem 1rem;
+  }
+  
+  .popup-header h4 {
+    font-size: 1rem;
+  }
+  
+  .popup-body {
+    padding: 1rem;
+  }
+  
+  .data-item {
+    padding: 0.625rem 0;
+  }
+  
+  .data-label,
+  .data-value {
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 768px) {
