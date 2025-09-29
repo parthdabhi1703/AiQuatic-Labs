@@ -1736,110 +1736,85 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     };
 
-    // 1. Temperature Distribution (Bar Chart)
+    // 1. Temperature & Dissolved Oxygen (Top 30 Records) Line Chart (replaces previous bar chart)
     const tempCanvas = validateCanvas("modalTempChart");
     if (tempCanvas && data.length > 0) {
       const tempCtx = tempCanvas.getContext('2d');
+
+      const getNum = (rec, fields) => {
+        for (let f of fields) {
+          if (rec[f] !== undefined && rec[f] !== null && rec[f] !== '') {
+            const v = parseFloat(rec[f]);
+            if (!isNaN(v)) return v;
+          }
+        }
+        return null;
+      };
+
       const temperatures = data
-        .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
-        .filter((t) => t !== null);
+        .map(d => getNum(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
+        .filter(v => v !== null);
 
-      if (temperatures.length > 0) {
-        const ranges = [
-          { label: "0-5°C", min: 0, max: 5, count: 0 },
-          { label: "5-10°C", min: 5, max: 10, count: 0 },
-          { label: "10-15°C", min: 10, max: 15, count: 0 },
-          { label: "15-20°C", min: 15, max: 20, count: 0 },
-          { label: "20-25°C", min: 20, max: 25, count: 0 },
-          { label: "25-30°C", min: 25, max: 30, count: 0 },
-          { label: "30+°C", min: 30, max: 50, count: 0 },
-        ];
+      const oxygen = data
+        .map(d => getNum(d, ["Oxygen Concentration (mg/L)", "oxygen_concentration_mgL", "Dissolved O₂", "oxygen", "dissolved_oxygen"]))
+        .filter(v => v !== null);
 
-        temperatures.forEach((temp) => {
-          for (let range of ranges) {
-            if (temp >= range.min && temp < range.max) {
-              range.count++;
-              break;
+      // Labels: eventDate preferred, fallback to eventID or index
+      const labels = data
+        .map(d => d.eventDate || d.eventID || d.EventID || d.date || d.Date || "Record")
+        .slice(0, 30);
+
+      if (temperatures.length > 0 && oxygen.length > 0) {
+        modalCharts.push(new Chart(tempCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Temperature (°C)',
+                data: temperatures.slice(0, 30),
+                borderColor: 'rgba(231,107,243,1)',
+                backgroundColor: 'rgba(231,107,243,0.20)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderWidth: 3
+              },
+              {
+                label: 'Dissolved O₂ (mg/L)',
+                data: oxygen.slice(0, 30),
+                borderColor: 'rgba(0,176,246,1)',
+                backgroundColor: 'rgba(0,176,246,0.20)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderWidth: 3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
+              title: { display: true, text: 'Temperature & Dissolved Oxygen (Top 30 Records)', font: { weight: 'bold' } },
+              tooltip: {
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                titleFont: { weight: 'bold' },
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`
+                }
+              }
+            },
+            scales: {
+              x: { title: { display: true, text: 'Collection Date' }, ticks: { maxRotation: 45, minRotation: 45 } },
+              y: { title: { display: true, text: 'Values' }, beginAtZero: false }
             }
           }
-        });
-
-        const labels = ranges.map((r) => r.label);
-        const counts = ranges.map((r) => r.count);
-
-        console.log('Temp context created:', !!tempCtx);
-        
-        modalCharts.push(
-          new Chart(tempCtx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: "Temperature Distribution",
-                  data: counts,
-                  backgroundColor: [
-                    "rgba(59, 130, 246, 0.8)",
-                    "rgba(16, 185, 129, 0.8)",
-                    "rgba(245, 158, 11, 0.8)",
-                    "rgba(239, 68, 68, 0.8)",
-                    "rgba(139, 92, 246, 0.8)",
-                    "rgba(236, 72, 153, 0.8)",
-                    "rgba(251, 146, 60, 0.8)",
-                  ],
-                  borderColor: [
-                    "rgba(59, 130, 246, 1)",
-                    "rgba(16, 185, 129, 1)",
-                    "rgba(245, 158, 11, 1)",
-                    "rgba(239, 68, 68, 1)",
-                    "rgba(139, 92, 246, 1)",
-                    "rgba(236, 72, 153, 1)",
-                    "rgba(251, 146, 60, 1)",
-                  ],
-                  borderWidth: 2,
-                  borderRadius: 6,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  callbacks: {
-                    title: function (context) {
-                      return `🌡️ ${context[0].label}`;
-                    },
-                    label: function (context) {
-                      return `Count: ${context.parsed.y} records`;
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: "Temperature Range (°C)",
-                    font: { weight: "bold" },
-                  },
-                  ticks: { font: { weight: "bold" } },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: "Number of Records",
-                    font: { weight: "bold" },
-                  },
-                  ticks: { font: { weight: "bold" } },
-                },
-              },
-            },
-          })
-        );
+        }));
       }
     }
 
