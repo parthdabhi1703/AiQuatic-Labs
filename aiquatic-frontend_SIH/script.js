@@ -1313,7 +1313,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Initialize modal map after charts are rendered
         setTimeout(() => {
           initializeModalMap(data, upload.dataType);
-        }, 300);
+        }, 500);
       }, 100);
       
     } catch (error) {
@@ -1367,8 +1367,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // 1. Family Distribution (Doughnut Chart)
-    const familyCtx = document.getElementById("modalFamilyChart");
-    if (familyCtx && data.length > 0) {
+    const familyCanvas = document.getElementById("modalFamilyChart");
+    if (familyCanvas && data.length > 0) {
       const families = data
         .map((d) => getFieldValue(d, ["Family", "family"]))
         .filter((f) => f !== null);
@@ -1384,7 +1384,7 @@ document.addEventListener("DOMContentLoaded", () => {
           .slice(0, 10);
 
         modalCharts.push(
-          new Chart(familyCtx, {
+          new Chart(familyCanvas, {
             type: "doughnut",
             data: {
               labels: topFamilies.map(([family]) => family),
@@ -1437,8 +1437,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 2. Species by Taxonomic Groups (Bar Chart)
-    const taxonomyCtx = document.getElementById("modalTaxonomyChart");
-    if (taxonomyCtx && data.length > 0) {
+    const taxonomyCanvas = document.getElementById("modalTaxonomyChart");
+    if (taxonomyCanvas && data.length > 0) {
       const classes = data
         .map((d) => getFieldValue(d, ["Class", "class"]))
         .filter((c) => c !== null);
@@ -1450,7 +1450,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         modalCharts.push(
-          new Chart(taxonomyCtx, {
+          new Chart(taxonomyCanvas, {
             type: "bar",
             data: {
               labels: Object.keys(classCounts).slice(0, 15),
@@ -1500,8 +1500,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 3. Population by Species (Bar Chart) 
-    const populationCtx = document.getElementById("modalPopulationChart");
-    if (populationCtx && data.length > 0) {
+    const populationCanvas = document.getElementById("modalPopulationChart");
+    if (populationCanvas && data.length > 0) {
       const speciesData = {};
       
       data.forEach((d) => {
@@ -1521,7 +1521,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (topSpecies.length > 0) {
         modalCharts.push(
-          new Chart(populationCtx, {
+          new Chart(populationCanvas, {
             type: "bar",
             data: {
               labels: topSpecies.map(([species]) => 
@@ -1573,8 +1573,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 4. Family vs Quantity Distribution (Scatter Chart)
-    const diversityCtx = document.getElementById("modalDiversityChart");
-    if (diversityCtx && data.length > 0) {
+    const diversityCanvas = document.getElementById("modalDiversityChart");
+    if (diversityCanvas && data.length > 0) {
+      const diversityCtx = diversityCanvas.getContext("2d");
       const scatterData = [];
       const familyColors = {};
       const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06d6a0", "#f72585"];
@@ -1675,8 +1676,9 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // 1. Temperature Distribution (Bar Chart)
-    const tempCtx = document.getElementById("modalTempChart");
-    if (tempCtx && data.length > 0) {
+    const tempCanvas = document.getElementById("modalTempChart");
+    if (tempCanvas && data.length > 0) {
+      const tempCtx = tempCanvas.getContext('2d');
       const temperatures = data
         .map((d) => getFieldValue(d, ["Temperature_C", "Temperature (C)", "temperature_C", "Temperature", "temp"]))
         .filter((t) => t !== null);
@@ -1705,7 +1707,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const counts = ranges.map((r) => r.count);
 
         modalCharts.push(
-          new Chart(tempCtx, {
+          new Chart(tempCanvas, {
             type: "bar",
             data: {
               labels: labels,
@@ -1779,8 +1781,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 2. Average Depth by Locality (Bar Chart)
-    const salinityCtx = document.getElementById("modalSalinityChart");
-    if (salinityCtx && data.length > 0) {
+    const salinityCanvas = document.getElementById("modalSalinityChart");
+    if (salinityCanvas && data.length > 0) {
       // Calculate average depth by locality
       const localityDepthMap = {};
       
@@ -1836,7 +1838,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const borderColors = gradientColors.map(color => color.replace('0.8', '1'));
 
         modalCharts.push(
-          new Chart(salinityCtx, {
+          new Chart(salinityCanvas, {
             type: "bar",
             data: {
               labels: localityLabels,
@@ -1919,8 +1921,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 3. Average Temperature & Salinity by Locality (Dual Bar Chart)
-    const depthCtx = document.getElementById("modalDepthChart");
-    if (depthCtx && data.length > 0) {
+    const depthCanvas = document.getElementById("modalDepthChart");
+    if (depthCanvas && data.length > 0) {
       const localityDataMap = {};
       
       data.forEach((record) => {
@@ -1978,7 +1980,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const avgSalinities = processedData.map(item => item.avgSalinity);
 
         modalCharts.push(
-          new Chart(depthCtx, {
+          new Chart(depthCanvas, {
             type: "bar",
             data: {
               labels: localities,
@@ -2068,8 +2070,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 4. Temperature vs Salinity Scatter Chart  
-    const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
-    if (tempSalinityScatterCtx && data.length > 0) {
+    const tempSalinityScatterCanvas = document.getElementById("modalTempSalinityScatterChart");
+    if (tempSalinityScatterCanvas && data.length > 0) {
       const scatterData = data
         .map((d) => {
           const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
@@ -2088,7 +2090,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
       if (scatterData.length > 0) {
         modalCharts.push(
-          new Chart(tempSalinityScatterCtx, {
+          new Chart(tempSalinityScatterCanvas, {
             type: "scatter",
             data: {
               datasets: [{
@@ -2192,6 +2194,13 @@ function initializeModalMap(data, dataType) {
     setTimeout(() => {
       const mapContainer = document.getElementById('modalMap');
       if (!mapContainer) return;
+      
+      // Ensure container is visible
+      if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
+        console.log('Map container not visible yet, retrying...');
+        setTimeout(() => initializeModalMap(data, dataType), 200);
+        return;
+      }
 
       // Initialize modal map
       modalMap = L.map('modalMap').setView([20.0, 77.0], 5); // Center on India
@@ -2201,6 +2210,11 @@ function initializeModalMap(data, dataType) {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18
       }).addTo(modalMap);
+
+      // Force map to resize properly in modal
+      setTimeout(() => {
+        modalMap.invalidateSize();
+      }, 100);
 
       // Function to get field value with multiple possible field names
       const getFieldValue = (record, fieldNames) => {
