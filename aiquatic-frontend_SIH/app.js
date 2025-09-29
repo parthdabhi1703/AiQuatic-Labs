@@ -674,6 +674,8 @@
   // === Ocean Monitoring Stations Map ===
   let oceanMap = null;
   let stationMarkers = [];
+  let csvMarkers = [];
+  let allMarkers = [];
   let currentLayer = 'all';
 
   // Initialize the map
@@ -784,7 +786,7 @@
       }
     ];
 
-    // Add markers for each station
+    // Add markers for each static station
     monitoringStations.forEach(station => {
       const marker = L.marker([station.lat, station.lng])
         .addTo(oceanMap)
@@ -794,6 +796,7 @@
             <div class="species">🐟 Species: ${station.species}</div>
             <div class="temp">🌡️ Temperature: ${station.temperature}</div>
             <div class="salinity">🌊 Salinity: ${station.salinity}</div>
+            <div class="data-source">📊 Source: Static Data</div>
           </div>
         `, {
           className: 'custom-popup'
@@ -801,8 +804,13 @@
 
       // Store marker with station data for filtering
       marker.stationData = station;
+      marker.stationData.source = "static";
       stationMarkers.push(marker);
+      allMarkers.push(marker);
     });
+
+    // Load CSV data and add markers
+    loadCSVData();
 
     // Add custom control for legend
     const legend = L.control({position: 'bottomright'});
@@ -810,10 +818,11 @@
       const div = L.DomUtil.create('div', 'legend');
       div.innerHTML = `
         <div style="background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h4 style="margin: 0 0 8px 0; color: #1e293b;">Station Types</h4>
-          <div><span style="color: #3b82f6;">🔵</span> Coastal Stations</div>
-          <div><span style="color: #10b981;">🟢</span> Deep Sea Stations</div> 
-          <div><span style="color: #f59e0b;">🟡</span> Port Stations</div>
+          <h4 style="margin: 0 0 8px 0; color: #1e293b;">Data Sources</h4>
+          <div><span style="color: #3b82f6;">🔵</span> Static Stations</div>
+          <div><span style="color: #10b981;">🟢</span> Marine Research Data</div> 
+          <div><span style="color: #f59e0b;">🟡</span> High Temperature</div>
+          <div><span style="color: #ef4444;">🔴</span> High Salinity</div>
         </div>
       `;
       return div;
@@ -821,9 +830,295 @@
     legend.addTo(oceanMap);
   }
 
+  // Load embedded marine research data directly
+  function loadCSVData() {
+    console.log('Loading embedded marine research data...');
+    
+    // Use embedded data from leaflet-data.js (complete dataset)
+    const embeddedData = window.EMBEDDED_LEAFLET_DATA || [];
+    
+    if (embeddedData.length === 0) {
+      console.warn('No embedded marine research data available');
+      return;
+    }
+
+    console.log('Successfully loaded embedded data:', embeddedData.length, 'marine research records');
+    
+    // Process embedded data and add markers to map
+    embeddedData.forEach(row => {
+      const lat = parseFloat(row.decimalLatitude);
+      const lon = parseFloat(row.decimalLongitude);
+      const temperature = parseFloat(row.Temperature_C);
+      const salinity = parseFloat(row.sea_water_salinity);
+
+      if (!isNaN(lat) && !isNaN(lon)) {
+        // Create custom icon based on data values
+        let iconColor = '#10b981'; // Default green for marine data
+        let markerType = 'csv';
+        
+        if (temperature > 25) {
+          iconColor = '#f59e0b'; // Orange for high temperature
+          markerType = 'high_temp';
+        }
+        if (salinity > 35) {
+          iconColor = '#ef4444'; // Red for high salinity
+          markerType = 'high_salinity';
+        }
+
+        // Create custom icon
+        const customIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background-color: ${iconColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        const popupContent = `
+          <div class="station-info">
+            <h4>Event ID: ${row.eventID}</h4>
+            <div class="species">🐠 Species: ${row.scientificName}</div>
+            <div class="location">📍 Location: ${row.locality}</div>
+            <div class="temp">🌡️ Temperature: ${row.Temperature_C}°C</div>
+            <div class="salinity">🌊 Salinity: ${row.sea_water_salinity} PSU</div>
+            <div class="oxygen">💨 Dissolved O₂: ${row.oxygen_concentration_mgL} mg/L</div>
+            <div class="depth">📏 Depth: ${row.DepthInMeters}m</div>
+            <div class="date">📅 Date: ${row.eventDate}</div>
+            <div class="data-source">📊 Source: Marine Research Dataset</div>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lon], { icon: customIcon })
+          .addTo(oceanMap)
+          .bindPopup(popupContent, {
+            className: 'custom-popup'
+          });
+
+        // Store marker with data for filtering
+        marker.stationData = {
+          name: `Event ${row.eventID}`,
+          lat: lat,
+          lng: lon,
+          species: row.scientificName,
+          temperature: row.Temperature_C,
+          salinity: row.sea_water_salinity,
+          oxygen: row.oxygen_concentration_mgL,
+          depth: row.DepthInMeters,
+          locality: row.locality,
+          eventDate: row.eventDate,
+          type: markerType,
+          source: "embedded"
+        };
+
+        csvMarkers.push(marker);
+        allMarkers.push(marker);
+      }
+    });
+
+    console.log('Added', csvMarkers.length, 'marine research markers to map');
+  }
+
+  // Fallback to CSV sources
+  function tryLoadFromCSVSources() {
+    return new Promise((resolve, reject) => {
+      const csvSources = [
+        "leaflet_data.csv", // Local file (works when served via HTTP)
+        "https://raw.githubusercontent.com/parthdabhi1703/AiQuatic-Labs/main/sample_data/leaflet_data.csv", // GitHub raw URL
+        "../sample_data/leaflet_data.csv" // Relative path
+      ];
+
+      function tryLoadCSV(sourceIndex = 0) {
+        if (sourceIndex >= csvSources.length) {
+          reject(new Error('Failed to load CSV from all sources'));
+          return;
+        }
+
+        console.log(`Trying CSV source ${sourceIndex + 1}/${csvSources.length}: ${csvSources[sourceIndex]}`);
+
+        Papa.parse(csvSources[sourceIndex], {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+      complete: function(results) {
+        console.log('CSV data loaded:', results.data.length, 'records');
+        
+        results.data.forEach(row => {
+          const lat = parseFloat(row.decimalLatitude);
+          const lon = parseFloat(row.decimalLongitude);
+          const temperature = parseFloat(row.Temperature_C);
+          const salinity = parseFloat(row.sea_water_salinity);
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            // Create custom icon based on data values
+            let iconColor = '#10b981'; // Default green for CSV data
+            let markerType = 'csv';
+            
+            if (temperature > 25) {
+              iconColor = '#f59e0b'; // Orange for high temperature
+              markerType = 'high_temp';
+            }
+            if (salinity > 35) {
+              iconColor = '#ef4444'; // Red for high salinity
+              markerType = 'high_salinity';
+            }
+
+            // Create custom icon
+            const customIcon = L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="background-color: ${iconColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
+            });
+
+            const popupContent = `
+              <div class="station-info">
+                <h4>Event ID: ${row.eventID}</h4>
+                <div class="species">� Species: ${row.scientificName}</div>
+                <div class="location">📍 Location: ${row.locality}</div>
+                <div class="temp">🌡️ Temperature: ${row.Temperature_C}°C</div>
+                <div class="salinity">🌊 Salinity: ${row.sea_water_salinity} PSU</div>
+                <div class="oxygen">💨 Dissolved O₂: ${row.oxygen_concentration_mgL} mg/L</div>
+                <div class="depth">📏 Depth: ${row.DepthInMeters}m</div>
+                <div class="date">📅 Date: ${row.eventDate}</div>
+                <div class="data-source">📊 Source: CSV Data</div>
+              </div>
+            `;
+
+            const marker = L.marker([lat, lon], { icon: customIcon })
+              .addTo(oceanMap)
+              .bindPopup(popupContent, {
+                className: 'custom-popup'
+              });
+
+            // Store marker with data for filtering
+            marker.stationData = {
+              name: `Event ${row.eventID}`,
+              lat: lat,
+              lng: lon,
+              species: row.scientificName,
+              temperature: row.Temperature_C,
+              salinity: row.sea_water_salinity,
+              oxygen: row.oxygen_concentration_mgL,
+              depth: row.DepthInMeters,
+              locality: row.locality,
+              eventDate: row.eventDate,
+              type: markerType,
+              source: "csv"
+            };
+
+            csvMarkers.push(marker);
+            allMarkers.push(marker);
+          }
+        });
+
+            console.log('Successfully loaded CSV data:', results.data.length, 'records');
+            processMapData(results.data, 'CSV Data');
+            resolve(results.data);
+          },
+          error: function(error) {
+            console.error(`Error loading CSV from source ${sourceIndex}:`, error);
+            tryLoadCSV(sourceIndex + 1);
+          }
+        });
+      }
+
+      // Start trying to load CSV
+      tryLoadCSV();
+    });
+  }
+
+  // Process and add map data (works for both API and CSV data)
+  function processMapData(data, dataSource = 'API Data') {
+    data.forEach(row => {
+      const lat = parseFloat(row.decimalLatitude || row.lat || row.latitude);
+      const lon = parseFloat(row.decimalLongitude || row.lng || row.longitude);
+      const temperature = parseFloat(row.Temperature_C || row.temperature);
+      const salinity = parseFloat(row.sea_water_salinity || row.salinity);
+
+      if (!isNaN(lat) && !isNaN(lon)) {
+        // Create custom icon based on data values
+        let iconColor = '#10b981'; // Default green for data
+        let markerType = 'csv';
+        
+        if (temperature > 25) {
+          iconColor = '#f59e0b'; // Orange for high temperature
+          markerType = 'high_temp';
+        }
+        if (salinity > 35) {
+          iconColor = '#ef4444'; // Red for high salinity
+          markerType = 'high_salinity';
+        }
+
+        // Create custom icon
+        const customIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background-color: ${iconColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        const popupContent = `
+          <div class="station-info">
+            <h4>Event ID: ${row.eventID || row.id || 'N/A'}</h4>
+            <div class="species">🐠 Species: ${row.scientificName || row.species || 'Unknown'}</div>
+            <div class="location">📍 Location: ${row.locality || row.location || 'Unknown'}</div>
+            <div class="temp">🌡️ Temperature: ${temperature}°C</div>
+            <div class="salinity">🌊 Salinity: ${salinity} PSU</div>
+            <div class="oxygen">💨 Dissolved O₂: ${row.oxygen_concentration_mgL || row.oxygen || 'N/A'} mg/L</div>
+            <div class="depth">📏 Depth: ${row.DepthInMeters || row.depth || 'N/A'}m</div>
+            <div class="date">📅 Date: ${row.eventDate || row.date || 'N/A'}</div>
+            <div class="data-source">📊 Source: ${dataSource}</div>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lon], { icon: customIcon })
+          .addTo(oceanMap)
+          .bindPopup(popupContent, {
+            className: 'custom-popup'
+          });
+
+        // Store marker with data for filtering
+        marker.stationData = {
+          name: `Event ${row.eventID || row.id || 'Unknown'}`,
+          lat: lat,
+          lng: lon,
+          species: row.scientificName || row.species || 'Unknown',
+          temperature: temperature,
+          salinity: salinity,
+          oxygen: row.oxygen_concentration_mgL || row.oxygen,
+          depth: row.DepthInMeters || row.depth,
+          locality: row.locality || row.location,
+          eventDate: row.eventDate || row.date,
+          type: markerType,
+          source: "csv"
+        };
+
+        csvMarkers.push(marker);
+        allMarkers.push(marker);
+      }
+    });
+
+    console.log('Added', csvMarkers.length, 'markers to map from', dataSource);
+  }
+
+  // Fallback data in case CSV loading fails
+  function loadFallbackData() {
+    console.log('Loading embedded fallback data');
+    
+    // Use embedded data from leaflet-data.js
+    const fallbackData = window.EMBEDDED_LEAFLET_DATA || [];
+    
+    if (fallbackData.length === 0) {
+      console.warn('No embedded fallback data available');
+      return;
+    }
+
+    // Process fallback data same way as other data
+    processMapData(fallbackData, 'Embedded Data');
+  }
+
   // Toggle map layers based on button clicks
   window.toggleMapLayer = function(layer) {
-    if (!oceanMap || !stationMarkers) return;
+    if (!oceanMap || !allMarkers) return;
     
     currentLayer = layer;
     
@@ -834,16 +1129,24 @@
     event.target.closest('.map-btn').classList.add('active');
 
     // Show/hide markers based on layer
-    stationMarkers.forEach(marker => {
+    allMarkers.forEach(marker => {
       const station = marker.stationData;
       let showMarker = false;
 
       switch(layer) {
         case 'temperature':
-          showMarker = parseFloat(station.temperature) > 28;
+          // Show markers with temperature > 25°C (includes both static and CSV data)
+          const temp = parseFloat(station.temperature);
+          showMarker = !isNaN(temp) && temp > 25;
           break;
         case 'salinity': 
-          showMarker = parseFloat(station.salinity) > 34;
+          // Show markers with salinity > 34 PSU (includes both static and CSV data)
+          const salinity = parseFloat(station.salinity);
+          showMarker = !isNaN(salinity) && salinity > 34;
+          break;
+        case 'csv':
+          // Show only embedded marine research data markers
+          showMarker = station.source === 'embedded';
           break;
         case 'all':
         default:

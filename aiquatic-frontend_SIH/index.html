@@ -29,6 +29,8 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+    <!-- Embedded marine research data -->
+    <script src="leaflet-data.js"></script>
     <script src="config.js"></script>
   </head>
   <body>
@@ -198,13 +200,16 @@
             </h3>
             <div class="map-controls">
               <button class="map-btn" onclick="toggleMapLayer('temperature')">
-                <i class="fas fa-thermometer-half"></i> Temperature
+                <i class="fas fa-thermometer-half"></i> High Temp
               </button>
               <button class="map-btn" onclick="toggleMapLayer('salinity')">
-                <i class="fas fa-tint"></i> Salinity
+                <i class="fas fa-tint"></i> High Salinity
+              </button>
+              <button class="map-btn" onclick="toggleMapLayer('csv')">
+                <i class="fas fa-database"></i> Marine Data
               </button>
               <button class="map-btn active" onclick="toggleMapLayer('all')">
-                <i class="fas fa-globe-asia"></i> All Stations
+                <i class="fas fa-globe-asia"></i> All Data
               </button>
             </div>
           </div>

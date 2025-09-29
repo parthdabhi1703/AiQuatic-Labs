@@ -19,6 +19,7 @@ import fishDataRoutes from "./routes/fishDataRoutes.js";
 import datasetUploadRoutes from "./routes/datasetUploadRoutes.js";
 import biodiversityInsightsRoutes from "./routes/biodiversityInsightsRoutes.js";
 import recentUploadsRoutes from "./routes/recentUploadsRoutes.js";
+import leafletDataRoutes from "./routes/leafletDataRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -341,11 +342,12 @@ app.post('/api/upload', upload.single('dataset'), async (req, res) => {
 
 // Other API Routes
 app.use("/api/users", userRoutes);
-app.use("/api/ocean_data", oceanDataRoutes);
+app.use("/api/ocean-data", oceanDataRoutes);
 app.use("/api/fish_data", fishDataRoutes);
 app.use("/api/dataset_uploads", datasetUploadRoutes); 
 app.use("/api/insights", biodiversityInsightsRoutes);
 app.use("/api/recent-uploads", recentUploadsRoutes);
+app.use("/api/ocean-data", leafletDataRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => res.send("Welcome to the AiQuatic Labs Backend API! 🚀"));
