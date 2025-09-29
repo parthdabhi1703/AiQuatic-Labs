@@ -693,98 +693,188 @@
     }).addTo(oceanMap);
 
     // Indian Ocean monitoring stations data
-    const monitoringStations = [
-      {
-        name: "Mumbai Coastal Station",
-        lat: 19.0760,
-        lng: 72.8777,
-        species: "Mackerel",
-        temperature: "28.5°C",
-        salinity: "35 PSU",
-        type: "coastal"
-      },
-      {
-        name: "Goa Marine Observatory", 
-        lat: 15.2993,
-        lng: 74.1240,
-        species: "Pomfret",
-        temperature: "29.2°C", 
-        salinity: "34 PSU",
-        type: "coastal"
-      },
-      {
-        name: "Chennai Bay Station",
-        lat: 13.0827,
-        lng: 80.2707,
-        species: "Sardine",
-        temperature: "27.8°C",
-        salinity: "33 PSU", 
-        type: "bay"
-      },
-      {
-        name: "Kochi Monitoring Point",
-        lat: 9.9312,
-        lng: 76.2673,
-        species: "Tuna",
-        temperature: "30.1°C",
-        salinity: "35 PSU",
-        type: "coastal"
-      },
-      {
-        name: "Vizag Deep Sea Station",
-        lat: 17.6868,
-        lng: 83.2185,
-        species: "Barracuda",
-        temperature: "26.4°C",
-        salinity: "36 PSU",
-        type: "deep_sea"
-      },
-      {
-        name: "Bay of Bengal Monitoring Station",
-        lat: 16.5,
-        lng: 88.0,
-        species: "Mackerel", 
-        temperature: "27.1°C",
-        salinity: "35 PSU",
-        type: "deep_sea"
-      },
-      {
-        name: "Andaman Sea Observatory",
-        lat: 11.7401,
-        lng: 92.6586,
-        species: "Snapper",
-        temperature: "29.8°C",
-        salinity: "34 PSU",
-        type: "island"
-      },
-      {
-        name: "Kolkata Port Station",
-        lat: 22.5726,
-        lng: 88.3639,
-        species: "Hilsa",
-        temperature: "25.9°C",
-        salinity: "32 PSU",
-        type: "port"
-      },
-      {
-        name: "Mangalore Coastal Point",
-        lat: 12.9141,
-        lng: 74.8560,
-        species: "Kingfish",
-        temperature: "28.7°C", 
-        salinity: "34 PSU",
-        type: "coastal"
-      },
-      {
-        name: "Paradip Marine Station",
-        lat: 20.2648,
-        lng: 86.6249,
-        species: "Pomfret",
-        temperature: "26.8°C",
-        salinity: "35 PSU",
-        type: "port"
-      }
-    ];
+const monitoringStations = [
+  {
+    name: "Mumbai Coastal Station",
+    lat: 19.0760,
+    lng: 72.8777,
+    species: "Mackerel",
+    temperature: "28.5°C",
+    salinity: "35 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Goa Marine Observatory", 
+    lat: 15.2993,
+    lng: 74.1240,
+    species: "Pomfret",
+    temperature: "29.2°C", 
+    salinity: "34 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Chennai Bay Station",
+    lat: 13.0827,
+    lng: 80.2707,
+    species: "Sardine",
+    temperature: "27.8°C",
+    salinity: "33 PSU", 
+    type: "bay"
+  },
+  {
+    name: "Kochi Monitoring Point",
+    lat: 9.9312,
+    lng: 76.2673,
+    species: "Tuna",
+    temperature: "30.1°C",
+    salinity: "35 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Vizag Deep Sea Station",
+    lat: 17.6868,
+    lng: 83.2185,
+    species: "Barracuda",
+    temperature: "26.4°C",
+    salinity: "36 PSU",
+    type: "deep_sea"
+  },
+  {
+    name: "Bay of Bengal Monitoring Station",
+    lat: 16.5,
+    lng: 88.0,
+    species: "Mackerel", 
+    temperature: "27.1°C",
+    salinity: "35 PSU",
+    type: "deep_sea"
+  },
+  {
+    name: "Andaman Sea Observatory",
+    lat: 11.7401,
+    lng: 92.6586,
+    species: "Snapper",
+    temperature: "29.8°C",
+    salinity: "34 PSU",
+    type: "island"
+  },
+  {
+    name: "Kolkata Port Station",
+    lat: 22.5726,
+    lng: 88.3639,
+    species: "Hilsa",
+    temperature: "25.9°C",
+    salinity: "32 PSU",
+    type: "port"
+  },
+  {
+    name: "Mangalore Coastal Point",
+    lat: 12.9141,
+    lng: 74.8560,
+    species: "Kingfish",
+    temperature: "28.7°C", 
+    salinity: "34 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Paradip Marine Station",
+    lat: 20.2648,
+    lng: 86.6249,
+    species: "Pomfret",
+    temperature: "26.8°C",
+    salinity: "35 PSU",
+    type: "port"
+  },
+  {
+    name: "Lakshadweep Agatti Station",
+    lat: 10.8600,
+    lng: 72.1800,
+    species: "Reef Fish",
+    temperature: "27.9°C",
+    salinity: "36 PSU",
+    type: "island"
+  },
+  {
+    name: "Kavaratti Marine Base",
+    lat: 10.5667,
+    lng: 72.6369,
+    species: "Snapper",
+    temperature: "28.4°C",
+    salinity: "35 PSU",
+    type: "island"
+  },
+  {
+    name: "Port Blair Marine Station",
+    lat: 11.6234,
+    lng: 92.7265,
+    species: "Grouper",
+    temperature: "29.0°C",
+    salinity: "34 PSU",
+    type: "island"
+  },
+  {
+    name: "Nicobar Deep Sea Point",
+    lat: 7.5000,
+    lng: 93.8000,
+    species: "Tuna",
+    temperature: "26.7°C",
+    salinity: "36 PSU",
+    type: "deep_sea"
+  },
+  {
+    name: "Daman Coastal Station",
+    lat: 20.3974,
+    lng: 72.8328,
+    species: "Anchovy",
+    temperature: "28.1°C",
+    salinity: "34 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Tuticorin Gulf Station",
+    lat: 8.7642,
+    lng: 78.1348,
+    species: "Mullet",
+    temperature: "29.3°C",
+    salinity: "35 PSU",
+    type: "bay"
+  },
+  {
+    name: "Puducherry Bay Point",
+    lat: 11.9416,
+    lng: 79.8083,
+    species: "Sardine",
+    temperature: "28.0°C",
+    salinity: "33 PSU",
+    type: "bay"
+  },
+  {
+    name: "Gujarat Okha Station",
+    lat: 22.4700,
+    lng: 69.0700,
+    species: "Pomfret",
+    temperature: "27.5°C",
+    salinity: "36 PSU",
+    type: "coastal"
+  },
+  {
+    name: "Sundarbans Delta Station",
+    lat: 21.9497,
+    lng: 89.1833,
+    species: "Hilsa",
+    temperature: "26.2°C",
+    salinity: "31 PSU",
+    type: "bay"
+  },
+  {
+    name: "Cuddalore Marine Station",
+    lat: 11.7500,
+    lng: 79.7500,
+    species: "Mackerel",
+    temperature: "28.6°C",
+    salinity: "34 PSU",
+    type: "bay"
+  }
+];
 
     // Add markers for each static station
     monitoringStations.forEach(station => {

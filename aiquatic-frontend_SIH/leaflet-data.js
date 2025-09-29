@@ -3964,7 +3964,7 @@ const EMBEDDED_LEAFLET_DATA = [
     {
         eventID: '82346',
         scientificName: 'Munidopsis wardeni',
-        locality: 'Northwest off Dabhol, Maharashtra',
+        locality: 'Northwest off Dabhol',
         Temperature_C: '10.94',
         DepthInMeters: '263',
         decimalLatitude: '17.62',
