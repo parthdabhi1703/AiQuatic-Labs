@@ -2061,6 +2061,103 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
+
+    // 4. Temperature vs Salinity Scatter Chart  
+    const tempSalinityScatterCtx = document.getElementById("modalTempSalinityScatterChart");
+    if (tempSalinityScatterCtx && data.length > 0) {
+      const scatterData = data
+        .map((d) => {
+          const temp = getFieldValue(d, ["Temperature (C)", "temperature_C", "Temperature", "temp"]);
+          const salinity = getFieldValue(d, ["Salinity(PSU)", "sea_water_salinity", "Salinity", "psu"]);
+          
+          return {
+            x: temp,
+            y: salinity,
+            backgroundColor: temp !== null ? 
+              `hsl(${Math.max(0, Math.min(240, 240 - (temp * 8)))}, 70%, 60%)` : 
+              'rgba(99, 102, 241, 0.7)'
+          };
+        })
+        .filter((d) => d.x !== null && d.y !== null)
+        .slice(0, 150);
+        
+      if (scatterData.length > 0) {
+
+        modalCharts.push(
+          new Chart(tempSalinityScatterCtx, {
+            type: "scatter",
+            data: {
+              datasets: [{
+                label: "Temperature vs Salinity",
+                data: scatterData,
+                backgroundColor: scatterData.map(d => d.backgroundColor),
+                borderColor: 'rgba(59, 130, 246, 0.8)',
+                borderWidth: 1,
+                pointRadius: 6,
+                pointHoverRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    font: { size: 12, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleFont: { size: 14, weight: 'bold' },
+                  bodyFont: { size: 12 },
+                  padding: 12,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label: function(context) {
+                      return `Temperature: ${context.parsed.x}°C, Salinity: ${context.parsed.y} ppt`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  type: "linear",
+                  position: "bottom",
+                  title: { 
+                    display: true, 
+                    text: "Temperature (°C)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                },
+                y: { 
+                  title: { 
+                    display: true, 
+                    text: "Salinity (ppt)",
+                    font: { weight: 'bold' }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  },
+                  ticks: {
+                    font: { weight: 'bold' }
+                  }
+                }
+              }
+            }
+          })
+        );
+      }
+    }
+  }
 });
 
 // --- Modal Chart Functions ---
