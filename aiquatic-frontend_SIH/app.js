@@ -10,7 +10,7 @@
           labels:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
           datasets:[{ 
             label:"Ocean Temperature (°C)", 
-            data:[20,22,24,26,27,28,29,27,26,25,23,21],
+            data:[20.2,21.8,24.01,26,27.5,28,28.7,27.45,26.2,25.3,23.3,22.2],
             borderColor:"#3b82f6", 
             backgroundColor:"rgba(59,130,246,0.1)", 
             fill:true, 
@@ -57,7 +57,7 @@
           labels:["Arabian Sea","Bay of Bengal","Indian Ocean","Pacific","Atlantic"],
           datasets:[{ 
             label:"Species Count", 
-            data:[520,660,870,410,250],
+            data:[522,776,854,410,301],
             backgroundColor:["#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444"],
             borderRadius: 8,
             borderSkipped: false
@@ -196,7 +196,7 @@
         data:{
           labels:["High (>8mg/L)","Medium (5-8mg/L)","Low (<5mg/L)"],
           datasets:[{ 
-            data:[45,35,20],
+            data:[43,35,22],
             backgroundColor:["#10b981","#f59e0b","#ef4444"]
           }]
         },
@@ -215,7 +215,7 @@
         data:{
           labels:["Clupeidae","Scombridae","Carangidae","Engraulidae","Others"],
           datasets:[{ 
-            data:[250,180,140,100,90],
+            data:[253,177,143,101,88],
             backgroundColor:["#ef4444","#3b82f6","#10b981","#f59e0b","#8b5cf6"]
           }]
         },
@@ -234,7 +234,7 @@
           labels:["Reef","Open Ocean","Deep Sea","Coastal"],
           datasets:[{ 
             label:"Population", 
-            data:[320,450,210,380], 
+            data:[648,889,531,795], 
             backgroundColor:"#06b6d4",
             borderRadius: 8,
             borderSkipped: false
@@ -281,7 +281,7 @@
         data:{
           labels:["Least Concern","Near Threatened","Vulnerable","Endangered","Critical"],
           datasets:[{ 
-            data:[1200,850,450,156,42],
+            data:[1222,847,444,156,42],
             backgroundColor:["#10b981","#f59e0b","#ff6b35","#ef4444","#991b1b"]
           }]
         },
@@ -301,7 +301,7 @@
           labels:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
           datasets:[{ 
             label:"DNA Samples", 
-            data:[1200,1350,1400,1600,1550,1700,1800,1650,1750,1900,1850,2000],
+            data:[1231,1347,1417,1623,1552,1763,1892,1650,1731,1899,1840,1986],
             borderColor:"#8b5cf6", 
             backgroundColor:"rgba(139,92,246,0.1)", 
             fill:true,
@@ -325,10 +325,10 @@
       new Chart(ednaChartEl, {
         type:"doughnut",
         data:{
-          labels:["Region A","Region B","Region C","Region D"],
+          labels:["Region A","Region B","Region C","Region D","Region E","Region F"],
           datasets:[{ 
-            data:[400,350,500,280],
-            backgroundColor:["#3b82f6","#10b981","#f59e0b","#ef4444"]
+            data:[1207,1503,943,1756,2312,1039],
+            backgroundColor:["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899"]
           }]
         },
         options: {
@@ -374,7 +374,7 @@
           labels:["Processed","In Progress","Queued","Failed"],
           datasets:[{ 
             label:"Samples", 
-            data:[12450,2340,1890,320],
+            data:[18648,4263,3050,2730],
             backgroundColor:["#10b981","#f59e0b","#6b7280","#ef4444"],
             borderRadius: 8,
             borderSkipped: false
