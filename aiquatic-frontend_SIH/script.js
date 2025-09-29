@@ -751,10 +751,18 @@ document.addEventListener("DOMContentLoaded", () => {
         "rgba(45, 212, 191, 1)"      // Cyan
       ];
       
-      Object.entries(localityDepthMap).forEach(([locality, data], index) => {
-        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
-        localityLabels.push(locality);
-        averageDepths.push(avgDepth);
+      // Sort localities by average depth and take top 30
+      const sortedLocalities = Object.entries(localityDepthMap)
+        .map(([locality, data]) => ({
+          locality,
+          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
+        }))
+        .sort((a, b) => b.avgDepth - a.avgDepth)
+        .slice(0, 30); // Limit to top 30
+
+      sortedLocalities.forEach(item => {
+        localityLabels.push(item.locality);
+        averageDepths.push(item.avgDepth);
       });
       
       if (localityLabels.length > 0) {
@@ -895,12 +903,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const avgTemperatures = [];
       const avgSalinities = [];
       
-      Object.entries(localityDataMap).forEach(([locality, data]) => {
-        if (data.tempCount > 0 || data.salinityCount > 0) {
-          localities.push(locality);
-          avgTemperatures.push(data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0);
-          avgSalinities.push(data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0);
-        }
+      // Process and sort localities, then take top 30
+      const processedData = Object.entries(localityDataMap)
+        .filter(([locality, data]) => data.tempCount > 0 || data.salinityCount > 0)
+        .map(([locality, data]) => ({
+          locality,
+          avgTemp: data.tempCount > 0 ? Math.round((data.tempSum / data.tempCount) * 100) / 100 : 0,
+          avgSalinity: data.salinityCount > 0 ? Math.round((data.salinitySum / data.salinityCount) * 100) / 100 : 0
+        }))
+        .sort((a, b) => b.avgTemp - a.avgTemp) // Sort by temperature
+        .slice(0, 30); // Limit to top 30
+
+      processedData.forEach(item => {
+        localities.push(item.locality);
+        avgTemperatures.push(item.avgTemp);
+        avgSalinities.push(item.avgSalinity);
       });
       
       if (localities.length > 0) {
@@ -1497,10 +1514,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const localityLabels = [];
       const averageDepths = [];
 
-      Object.entries(localityDepthMap).forEach(([locality, data]) => {
-        const avgDepth = Math.round((data.totalDepth / data.count) * 100) / 100;
-        localityLabels.push(locality);
-        averageDepths.push(avgDepth);
+      // Sort localities by average depth and take top 30
+      const sortedLocalities = Object.entries(localityDepthMap)
+        .map(([locality, data]) => ({
+          locality,
+          avgDepth: Math.round((data.totalDepth / data.count) * 100) / 100
+        }))
+        .sort((a, b) => b.avgDepth - a.avgDepth)
+        .slice(0, 30); // Limit to top 30
+
+      sortedLocalities.forEach(item => {
+        localityLabels.push(item.locality);
+        averageDepths.push(item.avgDepth);
       });
 
       if (localityLabels.length > 0) {
@@ -1574,20 +1599,25 @@ document.addEventListener("DOMContentLoaded", () => {
         if (salinity !== null) localityData[locality].salinities.push(salinity);
       });
 
-      const localities = Object.keys(localityData).filter(loc => 
-        localityData[loc].temps.length > 0 && localityData[loc].salinities.length > 0
-      );
-
-      if (localities.length > 0) {
-        const avgTemps = localities.map(loc => {
+      // Process and sort localities, then take top 30
+      const processedData = Object.keys(localityData)
+        .filter(loc => localityData[loc].temps.length > 0 && localityData[loc].salinities.length > 0)
+        .map(loc => {
           const temps = localityData[loc].temps;
-          return Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 100) / 100;
-        });
-
-        const avgSalinities = localities.map(loc => {
           const salinities = localityData[loc].salinities;
-          return Math.round((salinities.reduce((a, b) => a + b, 0) / salinities.length) * 100) / 100;
-        });
+          return {
+            locality: loc,
+            avgTemp: Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 100) / 100,
+            avgSalinity: Math.round((salinities.reduce((a, b) => a + b, 0) / salinities.length) * 100) / 100
+          };
+        })
+        .sort((a, b) => b.avgTemp - a.avgTemp) // Sort by temperature
+        .slice(0, 30); // Limit to top 30
+
+      if (processedData.length > 0) {
+        const localities = processedData.map(item => item.locality);
+        const avgTemps = processedData.map(item => item.avgTemp);
+        const avgSalinities = processedData.map(item => item.avgSalinity);
 
         modalCharts.push(
           new Chart(tempSalinityCtx, {
@@ -1854,20 +1884,15 @@ function initializePreviewMap(data, dataType) {
           }
         }
 
-        // Create custom marker icon with proper marker shape
+        // Create custom marker icon (same as dashboard)
         const customIcon = L.divIcon({
-          className: 'custom-preview-marker',
-          html: `<div class="marker-pin" style="background-color: ${markerColor};">
-                   <div class="marker-icon">
-                     ${dataType === 'fish' ? '<i class="fas fa-fish"></i>' : '<i class="fas fa-water"></i>'}
-                   </div>
-                 </div>`,
-          iconSize: [30, 40],
-          iconAnchor: [15, 40],
-          popupAnchor: [0, -40]
+          className: 'custom-marker',
+          html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
         });
 
-        // Create popup content based on data type
+        // Create popup content based on data type (same style as dashboard)
         let popupContent = '';
         if (dataType === 'fish') {
           const species = getFieldValue(record, ['Species', 'species', 'scientificName', 'scientific_name']) || 'Unknown Species';
@@ -1876,29 +1901,13 @@ function initializePreviewMap(data, dataType) {
           const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
           
           popupContent = `
-            <div class="map-popup-container">
-              <div class="popup-header fish-header">
-                <i class="fas fa-fish"></i>
-                <h4>${species}</h4>
-              </div>
-              <div class="popup-body">
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-sitemap"></i> Family</span>
-                  <span class="data-value">${family}</span>
-                </div>
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-hashtag"></i> Quantity</span>
-                  <span class="data-value">${quantity}</span>
-                </div>
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-calendar-alt"></i> Date</span>
-                  <span class="data-value">${date}</span>
-                </div>
-                <div class="data-item coordinates">
-                  <span class="data-label"><i class="fas fa-map-marker-alt"></i> Location</span>
-                  <span class="data-value">${lat.toFixed(4)}°, ${lng.toFixed(4)}°</span>
-                </div>
-              </div>
+            <div class="station-info">
+              <h4>🐠 ${species}</h4>
+              <div class="species">👨‍👩‍👧‍👦 Family: ${family}</div>
+              <div class="temp">📊 Quantity: ${quantity}</div>
+              <div class="date">📅 Date: ${date}</div>
+              <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
+              <div class="data-source">📊 Source: Uploaded Dataset</div>
             </div>
           `;
         } else {
@@ -1909,33 +1918,14 @@ function initializePreviewMap(data, dataType) {
           const date = getFieldValue(record, ['eventDate', 'date', 'Date']) || 'Unknown Date';
           
           popupContent = `
-            <div class="map-popup-container">
-              <div class="popup-header ocean-header">
-                <i class="fas fa-water"></i>
-                <h4>${locality}</h4>
-              </div>
-              <div class="popup-body">
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-thermometer-half"></i> Temperature</span>
-                  <span class="data-value">${temperature !== null ? temperature + '°C' : 'N/A'}</span>
-                </div>
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-tint"></i> Salinity</span>
-                  <span class="data-value">${salinity !== null ? salinity + ' PSU' : 'N/A'}</span>
-                </div>
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-ruler-vertical"></i> Depth</span>
-                  <span class="data-value">${depth !== null ? depth + 'm' : 'N/A'}</span>
-                </div>
-                <div class="data-item">
-                  <span class="data-label"><i class="fas fa-calendar-alt"></i> Date</span>
-                  <span class="data-value">${date}</span>
-                </div>
-                <div class="data-item coordinates">
-                  <span class="data-label"><i class="fas fa-map-marker-alt"></i> Location</span>
-                  <span class="data-value">${lat.toFixed(4)}°, ${lng.toFixed(4)}°</span>
-                </div>
-              </div>
+            <div class="station-info">
+              <h4>🌊 ${locality}</h4>
+              <div class="temp">🌡️ Temperature: ${temperature !== null ? temperature + '°C' : 'N/A'}</div>
+              <div class="salinity">🌊 Salinity: ${salinity !== null ? salinity + ' PSU' : 'N/A'}</div>
+              <div class="depth">📏 Depth: ${depth !== null ? depth + 'm' : 'N/A'}</div>
+              <div class="date">📅 Date: ${date}</div>
+              <div class="data-source">📍 Location: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
+              <div class="data-source">📊 Source: Uploaded Dataset</div>
             </div>
           `;
         }
@@ -1944,11 +1934,7 @@ function initializePreviewMap(data, dataType) {
         L.marker([lat, lng], { icon: customIcon })
           .addTo(previewMap)
           .bindPopup(popupContent, {
-            className: 'enhanced-popup',
-            maxWidth: 300,
-            minWidth: 280,
-            closeButton: true,
-            autoPan: true
+            className: 'custom-popup'
           });
       }
     });
